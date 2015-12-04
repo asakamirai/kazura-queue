@@ -64,7 +64,7 @@ concurrently act1 act2 = do
 mapConcurrently :: [IO a] -> IO [a]
 mapConcurrently acts = do
     let len = length acts
-    mds <- Q.generate . Q.vectorOf len $ fmap (`div` 20000) <$> Q.arbitrary
+    mds <- Q.generate . Q.vectorOf len $ fmap (`mod` 20000) <$> Q.arbitrary
     withWaitStart $ \ wait -> do
         AS.mapConcurrently id $ wrap wait <$> zip mds acts
     where

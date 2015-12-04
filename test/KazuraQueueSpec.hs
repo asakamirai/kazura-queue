@@ -19,7 +19,7 @@ writeQueueSpec = HS.describe "writeQueue" $ do
             KQ.lengthQueue q `T.shouldReturn` 0
             KQ.writeQueue q v `T.shouldNotBlock` 500000
             q `T.queueLengthShouldBeIn` (0, 1)
-    T.whenItemsInQueue $ \ prepare -> do
+    T.whenItemsInQueue (1,10) $ \ prepare -> do
         HS.it "write the value without blocking" . prepare $ \ (q, pre) -> do
             let len0 = length pre
             KQ.lengthQueue q `T.shouldReturn` len0
@@ -52,13 +52,47 @@ readQueueSpec = HS.describe "readQueue" $ do
             q `T.queueLengthShouldBeIn` (-2, 0)
 
             (r1, r2) `T.shouldBe` (val1, val2)
-    T.whenItemsInQueue $ \ prepare -> do
+    T.whenItemsInQueue (1,10) $ \ prepare -> do
         HS.it "read one value without blocking" . prepare $ \ (q, pre) -> do
             r :: Int <- KQ.readQueue q `T.shouldNotBlock` 500000
             r `T.shouldBe` head pre
+
+tryReadQueueSpec :: HS.Spec
+tryReadQueueSpec = HS.describe "tryReadQueue" $ do
+    T.whenQueueIsEmpty $ \ prepare -> do
+        HS.it "immediately returns without reading value" . prepare $ \ q -> do
+            mret1 <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            mret1 `T.shouldBe` Nothing
+            q `T.queueLengthShouldBeIn` (-1, 0)
+            wait <- KQ.readQueue q `T.shouldBlock` 500000
+            q `T.queueLengthShouldBeIn` (-2, 0)
+            mret2 <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            mret2 `T.shouldBe` Nothing
+            q `T.queueLengthShouldBeIn` (-3, 0)
+            val :: Int <- Q.generate Q.arbitrary
+            KQ.writeQueue q val `T.shouldNotBlock` 500000
+            r <- wait `T.shouldAwakeFinish` 500000
+            r `T.shouldBe` val
+            q `T.queueLengthShouldBeIn` (-3, 0)
+            mret3 <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            mret3 `T.shouldBe` Nothing
+            q `T.queueLengthShouldBeIn` (-4, 0)
+        HS.it "read value after writing" . prepare $ \ q -> do
+            (val1 :: Int, val2) <- Q.generate Q.arbitrary
+            KQ.writeQueue q val1 `T.shouldNotBlock` 500000
+            mret1 <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            mret1 `T.shouldBe` Just val1
+            KQ.writeQueue q val2 `T.shouldNotBlock` 500000
+            mret2 <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            mret2 `T.shouldBe` Just val2
+    T.whenItemsInQueue (1,10) $ \ prepare -> do
+        HS.it "read one value without blocking" . prepare $ \ (q, pre) -> do
+            r :: Maybe Int <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            r `T.shouldBe` Just (head pre)
 
 spec :: HS.Spec
 spec = HS.describe "KazuraQueue basic specs" $ do
     writeQueueSpec
     readQueueSpec
+    tryReadQueueSpec
 

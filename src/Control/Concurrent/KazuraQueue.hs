@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TupleSections #-}
 
 -- | KazuraQueue is the fast queue implementation inspired by unagi-chan.
 
@@ -7,16 +8,15 @@ module Control.Concurrent.KazuraQueue
     , newQueue
     , readQueue
     , readQueueWithoutMask
---    , tryReadQueue
+    , tryReadQueue
+    , tryReadQueueWithoutMask
     , writeQueue
     , writeQueueWithoutMask
---    , tryWriteQueue
     , lengthQueue
     , lengthQueue'
---    , skipReadQueue
     ) where
 
-import           Control.Concurrent.WVar (WCached, WVar)
+import           Control.Concurrent.WVar (WCached, WVar, WTicket)
 import qualified Control.Concurrent.WVar as WVar
 
 import qualified Control.Concurrent      as CC
@@ -157,70 +157,129 @@ writeItem buf bufIdx ticket a = do
 ----------------------------------------------------------
 
 -- | Read an item from the 'Queue'.
+{-# INLINE readQueue #-}
 readQueue :: Queue a -> IO a
-readQueue = E.mask_ . readQueueRaw
+readQueue = E.mask_ . readQueueWithoutMask
 
 -- | Non-masked version of 'readQueue'.
 --   It is not safe for asynchronous exception.
+{-# INLINE readQueueWithoutMask #-}
 readQueueWithoutMask :: Queue a -> IO a
-readQueueWithoutMask = readQueueRaw
+readQueueWithoutMask queue@(Queue _ _ _ rsvar _) =
+    WVar.cacheWVar rsvar >>= readQueueRaw queue
 
-{-# INLINE readQueueRaw #-}
-readQueueRaw :: Queue a -> IO a
-readQueueRaw queue@(Queue _ _ _ rsvar _) =
-    WVar.cacheWVar rsvar >>= readStream queue
-
-{-# INLINE readStream #-}
-readStream :: Queue a -> WCached (ReadState a) -> IO a
-readStream queue rswc0 = do
+readQueueRaw :: Queue a -> WCached (ReadState a) -> IO a
+readQueueRaw queue rswc0 = do
     rstr0 <- Ref.readIORef rstrRef
     strIdx <- Atm.incrCounter 1 rcounter
-    if strIdx - rlimit0 > 0
-        then do
-            rswt1 <- extendReadStreamWithLock rstr0
-            readStream queue rswc0 { WVar.cachedTicket = rswt1 }
+    if rlimit0 - strIdx >= 0
+        then readStream rstrRef rstr0 strIdx
         else do
-            (bufIdx, rstr1) <- targetStream rstr0 strIdx
-            let buf = streamBuffer rstr1
-            M.when (bufIdx == 0) $ Ref.writeIORef rstrRef rstr1
-            item <- Arr.readArray buf bufIdx
-            Arr.writeArray buf bufIdx Done
-            case item of
-                Item a -> return a
-                _      -> error "impossible case readQueue"
+            rswt1 <- extendReadStreamWithLock rstr0 rswc0 True True
+            let rswc1 = rswc0 { WVar.cachedTicket = rswt1 }
+            readQueueRaw queue rswc1
     where
-        rswt0 = WVar.cachedTicket rswc0
         rstrRef = queueReadStream queue
+        rswt0 = WVar.cachedTicket rswc0
         (ReadState rcounter rlimit0) = WVar.readWTicket rswt0
-        extendReadStreamWithLock rstr0 = do
-            (suc, rswt1) <- WVar.tryTakeWCached rswc0
-            let rstate1 = WVar.readWTicket rswt1
-            if suc
-                then do
-                    rstate2 <- extendReadStream rstate1 rstr0
-                        `E.onException` WVar.putWCached rswc0 rstate1
-                    WVar.putWCached rswc0 rstate2
-                else WVar.readFreshWCached rswc0 { WVar.cachedTicket = rswt1 }
+
+-- | Try to read an item from the 'Queue'. It never blocks.
+--   Note: It decrease "length" of 'Queue' temporarily
+--     even if it does not have read an item.
+{-# INLINE tryReadQueue #-}
+tryReadQueue :: Queue a -> IO (Maybe a)
+tryReadQueue = E.mask_ . tryReadQueueWithoutMask
+
+-- | Non-masked version of 'tryReadQueue'.
+--   It is not safe for asynchronous exception.
+{-# INLINE tryReadQueueWithoutMask #-}
+tryReadQueueWithoutMask :: Queue a -> IO (Maybe a)
+tryReadQueueWithoutMask queue@(Queue _ _ _ rsvar _) =
+    WVar.cacheWVar rsvar >>= tryReadQueueRaw queue
+
+tryReadQueueRaw :: Queue a -> WCached (ReadState a) -> IO (Maybe a)
+tryReadQueueRaw queue rswc0 = do
+    rstr0 <- Ref.readIORef rstrRef
+    strIdx <- Atm.incrCounter 1 rcounter
+    if rlimit0 - strIdx >= 0
+        then Just <$> readStream rstrRef rstr0 strIdx
+        else do
+            rswt1 <- extendReadStreamWithLock rstr0 rswc0 False False
+            let rswc1 = rswc0 { WVar.cachedTicket = rswt1 }
+                (ReadState _ rlimit1) = WVar.readWTicket rswt1
+            loop <- if rlimit1 /= rlimit0
+                then return True
+                else do
+                    wcount <- Atm.readCounter wcounter
+                    if wcount - strIdx >= 0
+                        then CC.yield >> return True
+                        else return False
+            if loop
+                then tryReadQueueRaw queue rswc1
+                else return Nothing
+    where
+        rstrRef = queueReadStream queue
+        rswt0 = WVar.cachedTicket rswc0
+        (ReadState rcounter rlimit0) = WVar.readWTicket rswt0
+        wcounter = queueWriteCounter queue
+
+{-# INLINE readStream #-}
+readStream :: IORef (Stream a) -> Stream a -> StreamIndex -> IO a
+readStream rstrRef rstr0 strIdx = do
+    (bufIdx, rstr1) <- targetStream rstr0 strIdx
+    M.when (bufIdx == 0) $ Ref.writeIORef rstrRef rstr1
+    let buf = streamBuffer rstr1
+    item <- Arr.readArray buf bufIdx
+    Arr.writeArray buf bufIdx Done
+    case item of
+        Item a -> return a
+        _      -> error "impossible case readQueue"
+
+extendReadStreamWithLock ::
+       Stream a
+    -> WCached (ReadState a)
+    -> Bool
+    -> Bool
+    -> IO (WTicket (ReadState a))
+extendReadStreamWithLock rstr0 rswc0 waitLock waitWrite = do
+    (suc, rswt1) <- WVar.tryTakeWCached rswc0
+    let rstate1 = WVar.readWTicket rswt1
+    if suc
+        then do
+            rstate2 <- extendReadStream rstate1 rstr0 waitWrite
+                `E.onException` WVar.putWCached rswc0 rstate1
+            WVar.putWCached rswc0 rstate2
+        else do
+            let rswc1 = rswc0 { WVar.cachedTicket = rswt1 }
+            if waitLock
+                then WVar.readFreshWCached rswc1
+                else do
+                    rswc2 <- WVar.recacheWCached rswc1
+                    return $ WVar.cachedTicket rswc2
 
 {-# INLINE extendReadStream #-}
-extendReadStream :: ReadState a -> Stream a -> IO (ReadState a)
-extendReadStream rstate0 rstr = do
-    let rlimit0 = rsLimit rstate0
-    rlimit1 <- searchOrWaitStream rstr $ rlimit0 + 1
-    rcounter1 <- Atm.newCounter rlimit0
-    return rstate0
-            { rsCounter = rcounter1
-            , rsLimit   = rlimit1
-            }
-    where
-        {-# INLINE searchOrWaitStream #-}
-        searchOrWaitStream rstr0 rlimit0p = do
-            (rlimit1, rstr1) <- searchStreamReadLimit rstr0 rlimit0p
-            M.when (rlimit0p == rlimit1) $ do
+extendReadStream :: ReadState a -> Stream a -> Bool -> IO (ReadState a)
+extendReadStream rstate0 rstr0 waitWrite = do
+    (rlimitNext1, rstr1) <- searchStreamReadLimit rstr0 rlimitNext0
+    if rlimitNext0 /= rlimitNext1
+        then newRState rlimitNext1
+        else if waitWrite
+            then do
                 let (Stream buf1 _ offset1) = rstr1
-                    bufIdx1 = rlimit1 - offset1
+                    bufIdx1 = rlimitNext1 - offset1
                 waitItem buf1 bufIdx1
-            return $! rlimit1 - 1
+                (rlimitNext2, _) <- searchStreamReadLimit rstr1 rlimitNext1
+                newRState rlimitNext2
+            else return rstate0
+    where
+        rlimit0 = rsLimit rstate0
+        rlimitNext0 = rlimit0 + 1
+        newRState rlimitNext = do
+            rcounter <- Atm.newCounter rlimit0
+            return rstate0
+                { rsCounter = rcounter
+                , rsLimit   = rlimitNext - 1
+                }
 
 -- | Write an item to the 'Queue'.
 -- The item is evaluated (WHNF) before actual queueing.
@@ -229,10 +288,10 @@ writeQueue queue = E.mask_ . writeQueueRaw queue
 
 -- | Non-masked version of 'writeQueue'.
 --   It is not safe for asynchronous exception.
+{-# INLINE writeQueueRaw #-}
 writeQueueWithoutMask :: Queue a -> a -> IO ()
 writeQueueWithoutMask = writeQueueRaw
 
-{-# INLINE writeQueueRaw #-}
 writeQueueRaw :: Queue a -> a -> IO ()
 writeQueueRaw (Queue wstrRef wcounter _ _ noneTicket) a = do
     wstr0 <- Ref.readIORef wstrRef
@@ -281,7 +340,7 @@ waitNextStream (Stream _ nextStrRef offset) = go
                             NextSource _ -> go 1
 
 -- | Search 'Stream' and return 'StreamIndex' and its 'Stream'
---     of the oldest not-available Item.
+--     of the oldest unavailable Item.
 {-# INLINE searchStreamReadLimit #-}
 searchStreamReadLimit :: Stream a -> StreamIndex -> IO (StreamIndex, Stream a)
 searchStreamReadLimit baseStr strIdx =
@@ -295,7 +354,7 @@ searchStreamReadLimit baseStr strIdx =
                 Nothing -> waitNextStream stream 0 >>= go 0
 
 -- | Search 'Buffer' and return 'BufferIndex'
---     of the oldest not-available Item.
+--     of the oldest unavailable Item.
 --   If all Item in the Buffer is ready, return Nothing.
 {-# INLINE searchBufferReadLimit #-}
 searchBufferReadLimit :: Buffer a -> BufferIndex -> IO (Maybe BufferIndex)
@@ -319,8 +378,8 @@ searchBufferReadLimit buf = go
 lengthQueue :: Queue a -> IO Int
 lengthQueue (Queue _ wcounter _ rsvar _) = do
     rs <- WVar.readWVar rsvar
-    rcount <- Atm.readCounter $ rsCounter rs
     wcount <- Atm.readCounter wcounter
+    rcount <- Atm.readCounter $ rsCounter rs
     return $ wcount - rcount
 
 -- | Non-minus version of 'lengthQueue'

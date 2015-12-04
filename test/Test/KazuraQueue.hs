@@ -15,25 +15,36 @@ import qualified Control.Monad            as M
 
 import qualified Data.Foldable as TF
 
+import qualified System.Timeout as ST
+
+timeout :: IO r -> IO r
+timeout act = do
+    mr <- ST.timeout (10 * 1000000) act
+    case mr of
+        Just r  -> return r
+        Nothing -> T.assertFailure "timeout 10sec"
+
 whenQueueIsEmpty :: (((KQ.Queue x -> IO r) -> IO r) -> HS.Spec) -> HS.Spec
 whenQueueIsEmpty f = HS.describe "when Queue is empty" $ f prepare
     where
         prepare :: (KQ.Queue x -> IO r) -> IO r
         prepare iof = do
             q <- KQ.newQueue
-            prependIndefiniteBlock q $ iof q
+            timeout . prependIndefiniteBlock q $ iof q
 
 whenItemsInQueue :: Q.Arbitrary x =>
-    ((((KQ.Queue x, [x]) -> IO r) -> IO r) -> HS.Spec) -> HS.Spec
-whenItemsInQueue f = HS.describe "when some items in Queue" $ f prepare
+    (Int, Int) -> ((((KQ.Queue x, [x]) -> IO r) -> IO r) -> HS.Spec) -> HS.Spec
+whenItemsInQueue range f = HS.describe "when some items in Queue" $ f prepare
     where
+        (minSize, maxSize) = range
+        len = maxSize - minSize + 1
         prepare :: Q.Arbitrary x => ((KQ.Queue x, [x]) -> IO r) -> IO r
         prepare iof = do
-            num <- (+1) . (`mod` 10) . abs <$> Q.generate Q.arbitrary
+            num <- (+ minSize) . (`mod` len) . abs <$> Q.generate Q.arbitrary
             vals <- M.replicateM num $ Q.generate Q.arbitrary
             queue <- KQ.newQueue
             TF.for_ vals $ KQ.writeQueue queue
-            prependIndefiniteBlock queue $ iof (queue, vals)
+            timeout . prependIndefiniteBlock queue $ iof (queue, vals)
 
 prependIndefiniteBlock :: KQ.Queue x -> IO r -> IO r
 prependIndefiniteBlock queue io = do

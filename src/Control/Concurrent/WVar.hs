@@ -61,7 +61,7 @@ import qualified Data.IORef              as Ref
 newtype WVar a = WVar (IORef (WContent a))
     deriving Eq
 
--- | Create a 'WVar' which contains the supplied value.
+-- | Create a 'WVar' that contains the supplied value.
 --   Its state is fresh (not updating).
 {-# INLINE newWVar #-}
 newWVar :: a -> IO (WVar a)
