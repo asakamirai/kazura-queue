@@ -1,5 +1,5 @@
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeFamilies  #-}
 
 -- | KazuraQueue is the fast queue implementation inspired by unagi-chan.
 
@@ -16,7 +16,7 @@ module Control.Concurrent.KazuraQueue
     , lengthQueue'
     ) where
 
-import           Control.Concurrent.WVar (WCached, WVar, WTicket)
+import           Control.Concurrent.WVar (WCached, WTicket, WVar)
 import qualified Control.Concurrent.WVar as WVar
 
 import qualified Control.Concurrent      as CC
@@ -188,8 +188,9 @@ readQueueRaw queue rswc0 = do
         (ReadState rcounter rlimit0) = WVar.readWTicket rswt0
 
 -- | Try to read an item from the 'Queue'. It never blocks.
---   Note: It decrease "length" of 'Queue' temporarily
---     even if it does not have read an item.
+--
+--   Note: It decreases "length" of 'Queue' even when it returns Nothing.
+--     In such case, "length" will be lower than 0.
 {-# INLINE tryReadQueue #-}
 tryReadQueue :: Queue a -> IO (Maybe a)
 tryReadQueue = E.mask_ . tryReadQueueWithoutMask
@@ -377,8 +378,9 @@ searchBufferReadLimit buf = go
                 idxIsOutOfBuf = bufIdx >= bufferLength
 
 -- | Get the length of the items in the 'Queue'.
--- Caution: It returns minus value
---     when the Queue is empty and waiting for new value.
+--
+--   Caution: It returns the value which is lower than 0
+--     when the Queue is empty and some threads are waiting for new value.
 lengthQueue :: Queue a -> IO Int
 lengthQueue (Queue _ wcounter _ rsvar _) = do
     rs <- WVar.readWVar rsvar
@@ -386,7 +388,7 @@ lengthQueue (Queue _ wcounter _ rsvar _) = do
     rcount <- Atm.readCounter $ rsCounter rs
     return $ wcount - rcount
 
--- | Non-minus version of 'lengthQueue'
+-- | Non-minus version of 'lengthQueue'.
 lengthQueue' :: Queue a -> IO Int
 lengthQueue' queue = f <$> lengthQueue queue
     where

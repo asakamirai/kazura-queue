@@ -12,11 +12,11 @@
 --
 -- There are two states in the user viewpoint.
 --
--- * Fresh    ... The 'WVar' is not being updated.
---                This state corresponds to to full state of MVar.
--- * Updating ... The 'WVar' is being updated by someone.
---                This state corresponds to to empty state of MVar.
---                However, cached previous value can be read while Updating.
+-- [@Fresh@]    The 'WVar' is not being updated.
+--              This state corresponds to to full state of MVar.
+-- [@Updating@] The 'WVar' is being updated by someone.
+--              This state corresponds to to empty state of MVar.
+--              However, cached previous value can be read while Updating.
 
 module Control.Concurrent.WVar
     (
@@ -61,8 +61,7 @@ import qualified Data.IORef              as Ref
 newtype WVar a = WVar (IORef (WContent a))
     deriving Eq
 
--- | Create a 'WVar' that contains the supplied value.
---   Its state is fresh (not updating).
+-- | Create a fresh 'WVar' that contains the supplied value.
 {-# INLINE newWVar #-}
 newWVar :: a -> IO (WVar a)
 newWVar !a = WVar <$> Ref.newIORef WContent
