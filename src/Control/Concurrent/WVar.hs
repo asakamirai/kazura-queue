@@ -94,7 +94,7 @@ tryTakeWVar wv = cacheWVar wv >>= go
 --   When the supplied value is already evaluated, it never blocks.
 {-# INLINE putWVar #-}
 putWVar :: WVar a -> a -> IO ()
-putWVar wv !a = do
+putWVar wv a = do
     wc <- cacheWVar wv
     M.void $ putWCached wc a
 
