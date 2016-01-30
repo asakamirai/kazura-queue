@@ -11,6 +11,10 @@ import qualified Test.QuickCheck as Q
 import qualified Control.Concurrent.KazuraQueue as KQ
 import qualified Control.Monad                  as M
 
+import qualified Data.IORef as Ref
+
+import qualified System.Mem.Weak as Weak
+
 writeQueueSpec :: HS.Spec
 writeQueueSpec = HS.describe "writeQueue" $ do
     T.whenQueueIsEmpty $ \ prepare -> do
@@ -38,7 +42,7 @@ readQueueSpec = HS.describe "readQueue" $ do
             r <- wait `T.shouldAwakeFinish` 500000
             r `T.shouldBe` val
             q `T.queueLengthShouldBeIn` (-1, 0)
-        HS.it "blocks and awakes out of order (values are in order)" . prepare $ \ q -> do
+        HS.it "block and awake out of order (values are in order)" . prepare $ \ q -> do
             waits0 <- M.replicateM 2 $ KQ.readQueue q `T.shouldBlock` 500000
             q `T.queueLengthShouldBeIn` (-2, 0)
             (val1 :: Int, val2) <- Q.generate Q.arbitrary
@@ -52,6 +56,18 @@ readQueueSpec = HS.describe "readQueue" $ do
             q `T.queueLengthShouldBeIn` (-2, 0)
 
             (r1, r2) `T.shouldBe` (val1, val2)
+    T.whenQueueIsEmpty $ \ prepare -> do
+        HS.it "the item in a Queue is not evaluated by write/read" . prepare $ \ q -> do
+            KQ.writeQueue q ([1..] :: [Int]) `T.shouldNotBlock` 500000
+            M.void $ KQ.readQueue q `T.shouldNotBlock` 500000
+    T.whenQueueIsEmpty $ \ prepare -> do
+        HS.it "the item in a Queue can be garbage collected after read" . prepare $ \ q -> do
+            ref <- Ref.newIORef True
+            weak <- Weak.mkWeakPtr ref Nothing
+            KQ.writeQueue q ref `T.shouldNotBlock` 500000
+            T.shouldNotBeGarbageCollected weak
+            M.void $ KQ.readQueue q `T.shouldNotBlock` 500000
+            T.shouldBeGarbageCollected weak
     T.whenItemsInQueue (1,10) $ \ prepare -> do
         HS.it "read one value without blocking" . prepare $ \ (q, pre) -> do
             r :: Int <- KQ.readQueue q `T.shouldNotBlock` 500000

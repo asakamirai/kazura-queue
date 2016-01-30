@@ -25,7 +25,9 @@ import qualified Data.Maybe    as MB
 import           Data.Monoid   ((<>))
 import qualified Data.Typeable as TP
 
-import qualified System.Timeout as ST
+import qualified System.Mem      as Mem
+import qualified System.Mem.Weak as Weak
+import qualified System.Timeout  as ST
 
 import Prelude hiding (and, fail, or)
 
@@ -114,6 +116,26 @@ shouldThrow act selector = do
         exceptedType = (show . TP.typeOf . instanceOf) selector
         instanceOf :: Selector a -> a
         instanceOf _ = error "dummy data of shouldThrow"
+
+-- gc expectations
+
+shouldBeGarbageCollected :: Weak.Weak x -> IO ()
+shouldBeGarbageCollected weak = do
+    Mem.performGC
+    mref <- Weak.deRefWeak weak
+    case mref of
+        Just _  -> assertFailure "expected to be garbage collected but does not"
+        Nothing -> return ()
+
+shouldNotBeGarbageCollected :: Weak.Weak x -> IO ()
+shouldNotBeGarbageCollected weak = do
+    Mem.performGC
+    mv <- Weak.deRefWeak weak
+    case mv of
+        Just _  -> return ()
+        Nothing -> assertFailure "expected not to be garbage collected but garbage collected"
+
+-- concurrent expectations
 
 shouldBlock :: IO x -> Int -> IO (AS.Async x)
 shouldBlock act time = do

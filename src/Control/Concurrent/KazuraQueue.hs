@@ -99,12 +99,12 @@ newBufferSource = do
     arr <- Arr.newArray bufferLength None
     return (Arr.cloneMutableArray arr 0 bufferLength)
 
-newReadState :: IO (WVar (ReadState a))
-newReadState = do
-    rcounter <- Atm.newCounter $ -1
+newReadState :: StreamIndex -> IO (WVar (ReadState a))
+newReadState strIdx = do
+    rcounter <- Atm.newCounter strIdx
     WVar.newWVar ReadState
         { rsCounter = rcounter
-        , rsLimit   = -1
+        , rsLimit   = strIdx
         }
 
 -- | Create a new empty 'Queue'.
@@ -114,11 +114,11 @@ newQueue = do
     buf        <- bufSrc
     noneTicket <- Atm.readArrayElem buf 0
     next       <- Ref.newIORef $ NextSource bufSrc
-    let stream = Stream buf next 0
-    wstream <- Ref.newIORef stream
-    wcounter <- Atm.newCounter $ -1
-    rstream <- Ref.newIORef stream
-    rsvar <- newReadState
+    let stream = Stream buf next initialOffset
+    wstream    <- Ref.newIORef stream
+    wcounter   <- Atm.newCounter initialIndex
+    rstream    <- Ref.newIORef stream
+    rsvar      <- newReadState initialIndex
     return Queue
         { queueWriteStream  = wstream
         , queueWriteCounter = wcounter
@@ -126,6 +126,10 @@ newQueue = do
         , queueReadState    = rsvar
         , queueNoneTicket   = noneTicket
         }
+    where
+        -- for test of counter overflow
+        initialOffset = maxBound - 3
+        initialIndex  = initialOffset - 1
 
 ----------------------------------------------------------
 
