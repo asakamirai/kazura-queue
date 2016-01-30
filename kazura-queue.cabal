@@ -1,29 +1,35 @@
 name:                kazura-queue
-version:             0.1.0.0
+version:             0.1.0.3
 synopsis:            Fast concurrent queues much inspired by unagi-chan
 description:
     "kazura-queue" provides an implementation of FIFO queue.
     It is faster than Chan, TQueue or TChan by the benefit of fetch-and-add
     instruction.
-    Main motivation of this package is to solve some difficulty of "unagi-chan".
+    .
+    Main motivation of this package is to solve some difficulty of
+    "unagi-chan" package.
+    .
     - In "unagi-chan", the item in the queue/chan can be lost when async
       exception is throwed to the read thread while waiting for read.
       (Although it has handler to recover lost item,
        it is difficult to keep FIFO in such case)
+    .
     - In "unagi-chan", garbage items of the queue cannot be collected
       immediately.
       Since the buffer in the queue has the reference to the items until the
       buffer is garbage-collected.
+    .
     "kazura-queue" is slightly slower than "unagi-chan" instead of solving
     these issues.
-    And "kazura-queue" lost broadcast function to improve the second issue.
+    .
+    "kazura-queue" lost broadcast function to improve the second issue.
     It means that kazura-queue is not "Chan" but is just "Queue".
 homepage:            http://github.com/asakamirai/kazura-queue
 license:             BSD3
 license-file:        LICENSE
 author:              Asakamirai
 maintainer:          asakamirai_hackage@towanowa.net
-copyright:           2015 Asakamirai
+copyright:           2016 Asakamirai
 category:            Concurrency
 build-type:          Simple
 cabal-version:       >=1.10
