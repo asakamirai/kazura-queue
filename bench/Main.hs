@@ -129,7 +129,7 @@ main = do
     CR.defaultMainWith configSpeed
         [
           CR.bgroup "KazuraQueue" $ testcases $ testSpeed_ testKZRQueue
-        -- , CR.bgroup "Unagi"       $ testcases $ testSpeed_ testUChan
+        -- , CR.bgroup "UnagiChan"   $ testcases $ testSpeed_ testUChan
         , CR.bgroup "Chan"        $ testcases $ testSpeed_ testChan
         , CR.bgroup "TQueue"      $ testcases $ testSpeed_ testTQueue
         , CR.bgroup "TChan"       $ testcases $ testSpeed_ testTChan
@@ -137,7 +137,7 @@ main = do
     CR.defaultMainWith configCost
         [
           CR.bgroup "KazuraQueue" $ testcases $ testCost_ testKZRQueue
-        -- , CR.bgroup "Unagi"       $ testcases $ testCost_ testUChan
+        -- , CR.bgroup "UnagiChan"   $ testcases $ testCost_ testUChan
         , CR.bgroup "Chan"        $ testcases $ testCost_ testChan
         , CR.bgroup "TQueue"      $ testcases $ testCost_ testTQueue
         , CR.bgroup "TChan"       $ testcases $ testCost_ testTChan
