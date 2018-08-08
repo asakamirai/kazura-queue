@@ -342,7 +342,7 @@ waitNextStream (Stream _ nextStrRef offset) = go
                         (_, next) <- Atm.casIORef nextStrRef ticket nextStrCand
                         case Atm.peekTicket next of
                             NextStream nextStr -> return nextStr
-                            NextSource _ -> go 1
+                            NextSource _       -> go 1
 
 -- | Search 'Stream' and return 'StreamIndex' and its 'Stream'
 --     of the oldest unavailable Item.
@@ -356,7 +356,7 @@ searchStreamReadLimit baseStr strIdx =
             ret <- searchBufferReadLimit buf bufIdx
             case ret of
                 Just retBufIdx -> return (offset + retBufIdx, stream)
-                Nothing -> waitNextStream stream 0 >>= go 0
+                Nothing        -> waitNextStream stream 0 >>= go 0
 
 -- | Search 'Buffer' and return 'BufferIndex'
 --     of the oldest unavailable Item.

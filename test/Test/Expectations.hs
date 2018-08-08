@@ -92,7 +92,7 @@ shouldReturn :: (Show x, Eq x) => IO x -> x -> IO ()
 shouldReturn act expected = do
     ex <- E.try act
     case ex of
-        Right x  -> x `shouldBe` expected
+        Right x                    -> x `shouldBe` expected
         Left (E.SomeException err) -> HU.assertFailure $ desc err
     where
         desc err = mkDesc 80 "expected" expectedStr <> "\n" <>
