@@ -19,11 +19,11 @@ description:
       Since the buffer in the queue has the reference to the items until the
       buffer is garbage-collected.
     .
-    "kazura-queue" is slightly slower than "unagi-chan" instead of solving
+    \"kazura-queue\" is slightly slower than "unagi-chan" instead of solving
     these issues.
     .
-    "kazura-queue" lost broadcast function to improve the second issue.
-    It means that kazura-queue is not "Chan" but is just "Queue".
+    \"kazura-queue\" lost broadcast function to improve the second issue.
+    It means that kazura-queue is not \"Chan\" but is just \"Queue\".
 homepage:            http://github.com/asakamirai/kazura-queue
 license:             BSD3
 license-file:        LICENSE

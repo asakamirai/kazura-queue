@@ -13,9 +13,9 @@
 -- There are two states in the user viewpoint.
 --
 -- [@Fresh@]    The 'WVar' is not being updated.
---              This state corresponds to to full state of MVar.
+--              This state corresponds to full state of 'MVar'.
 -- [@Updating@] The 'WVar' is being updated by someone.
---              This state corresponds to to empty state of MVar.
+--              This state corresponds to empty state of 'MVar'.
 --              However, cached previous value can be read while Updating.
 
 module Control.Concurrent.WVar
@@ -55,7 +55,8 @@ import           Data.IORef              (IORef)
 import qualified Data.IORef              as Ref
 
 ------------------------------
--- WVar
+-- $wvar
+--   Main functions of 'WVar'.
 
 -- | "a" is the type of data in the WVar.
 newtype WVar a = WVar (IORef (WContent a))
