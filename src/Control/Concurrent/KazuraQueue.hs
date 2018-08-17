@@ -176,7 +176,7 @@ readQueueRaw :: Queue a -> WCached (ReadState a) -> IO a
 readQueueRaw queue rswc0 = do
     rstr0 <- Ref.readIORef rstrRef
     strIdx <- Atm.incrCounter 1 rcounter
-    if rlimit0 - strIdx >= 0
+    if rlimit0 `gteIndex` strIdx
         then readStream rstrRef rstr0 strIdx
         else do
             rswt1 <- extendReadStreamWithLock rstr0 rswc0 True True
@@ -206,7 +206,7 @@ tryReadQueueRaw :: Queue a -> WCached (ReadState a) -> IO (Maybe a)
 tryReadQueueRaw queue rswc0 = do
     rstr0 <- Ref.readIORef rstrRef
     strIdx <- Atm.incrCounter 1 rcounter
-    if rlimit0 - strIdx >= 0
+    if rlimit0 `gteIndex` strIdx
         then Just <$> readStream rstrRef rstr0 strIdx
         else do
             rswt1 <- extendReadStreamWithLock rstr0 rswc0 False False
@@ -395,3 +395,7 @@ lengthQueue' queue = f <$> lengthQueue queue
         f i | i > 0     = i
             | otherwise = 0
 
+{-# INLINE gteIndex #-}
+gteIndex :: Int -> Int -> Bool
+gteIndex a b | a - b < 0 = False
+             | otherwise = True
