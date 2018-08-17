@@ -212,21 +212,13 @@ tryReadQueueRaw queue rswc0 = do
             rswt1 <- extendReadStreamWithLock rstr0 rswc0 False False
             let rswc1 = rswc0 { WVar.cachedTicket = rswt1 }
                 (ReadState _ rlimit1) = WVar.readWTicket rswt1
-            loop <- if rlimit1 /= rlimit0
-                then return True
-                else do
-                    wcount <- Atm.readCounter wcounter
-                    if wcount - strIdx >= 0
-                        then CC.yield >> return True
-                        else return False
-            if loop
+            if rlimit1 /= rlimit0
                 then tryReadQueueRaw queue rswc1
                 else return Nothing
     where
         rstrRef = queueReadStream queue
         rswt0 = WVar.cachedTicket rswc0
         (ReadState rcounter rlimit0) = WVar.readWTicket rswt0
-        wcounter = queueWriteCounter queue
 
 {-# INLINE readStream #-}
 readStream :: IORef (Stream a) -> Stream a -> StreamIndex -> IO a
