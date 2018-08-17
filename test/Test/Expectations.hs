@@ -33,7 +33,7 @@ import Prelude hiding (and, fail, or)
 
 assertFailure :: String -> IO x
 assertFailure desc = do
-    HU.assertFailure desc
+    M.void $ HU.assertFailure desc
     error "dummy"
 
 failWithException :: (String -> String) -> IO x -> IO y
