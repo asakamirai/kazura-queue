@@ -30,7 +30,7 @@ import qualified Data.Traversable as TF
 writeQueueSpec :: HS.Spec
 writeQueueSpec = HS.describe "writeQueue" $ do
     T.whenItemsInQueue (1,10) $ \ prepare -> do
-        HS.prop "write and read values concurrently" . prepare $ \ (q, pre) -> do
+        T.ioprop "write and read values concurrently" . prepare $ \ (q, pre) -> do
             (val1 :: Int, val2, val3) <- Q.generate Q.arbitrary
             T.mapConcurrently_
                 [ KQ.writeQueue q val1 `T.shouldNotBlock` 500000
@@ -56,7 +56,7 @@ writeQueueSpec = HS.describe "writeQueue" $ do
 readQueueSpec :: HS.Spec
 readQueueSpec = HS.describe "readQueue" $ do
     T.whenQueueIsEmpty $ \ prepare -> do
-        HS.prop "values are read in order (thread awakes out of order)" . prepare $ \ q -> do
+        T.ioprop "values are read in order (thread awakes out of order)" . prepare $ \ q -> do
             waits0 <- M.replicateM 3 $ KQ.readQueue q `T.shouldBlock` 500000
             q `T.queueLengthShouldBeIn` (-3, 0)
             (val1 :: Int, val2, val3) <- Q.generate Q.arbitrary
@@ -75,38 +75,38 @@ readQueueSpec = HS.describe "readQueue" $ do
 tryReadQueueSpec :: HS.Spec
 tryReadQueueSpec = HS.describe "tryReadQueue" $ do
     T.whenItemsInQueue (1,10) $ \ prepare -> do
-        HS.prop "values are read in order" . prepare $ \ (q, pre :: [Int]) -> do
-            mrets <- M.replicateM 10 $ KQ.tryReadQueue q `T.shouldNotBlock` 500000
+        T.ioprop "values are read in order" . prepare $ \ (q, pre :: [Int]) -> do
+            mrets <- M.replicateM 10 $ KQ.tryReadQueue q `T.shouldNotBlock` 1000000
             q `T.queueLengthShouldBeIn` (-10, 0)
             let nothings = L.replicate (10 - length pre) Nothing
                 expected = (Just <$> pre) <> nothings
             mrets `T.shouldBe` expected
     T.whenQueueIsEmpty $ \ prepare -> do
-        HS.prop "read value after writing" . prepare $ \ q -> do
+        T.ioprop "read value after writing" . prepare $ \ q -> do
             (val1 :: Int, val2, val3, val4) <- Q.generate Q.arbitrary
-            KQ.writeQueue q val1 `T.shouldNotBlock` 500000
-            mret1 <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            KQ.writeQueue q val1 `T.shouldNotBlock` 1000000
+            mret1 <- KQ.tryReadQueue q `T.shouldNotBlock` 1000000
             mret1 `T.shouldBe` Just val1
-            KQ.writeQueue q val2 `T.shouldNotBlock` 500000
-            mret2 <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            KQ.writeQueue q val2 `T.shouldNotBlock` 1000000
+            mret2 <- KQ.tryReadQueue q `T.shouldNotBlock` 1000000
             mret2 `T.shouldBe` Just val2
-            KQ.writeQueue q val3 `T.shouldNotBlock` 500000
-            mret3 <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            KQ.writeQueue q val3 `T.shouldNotBlock` 1000000
+            mret3 <- KQ.tryReadQueue q `T.shouldNotBlock` 1000000
             mret3 `T.shouldBe` Just val3
-            KQ.writeQueue q val4 `T.shouldNotBlock` 500000
-            mret4 <- KQ.tryReadQueue q `T.shouldNotBlock` 500000
+            KQ.writeQueue q val4 `T.shouldNotBlock` 1000000
+            mret4 <- KQ.tryReadQueue q `T.shouldNotBlock` 1000000
             mret4 `T.shouldBe` Just val4
 
 readWriteQueueSpec :: HS.Spec
 readWriteQueueSpec = HS.describe "readWriteQueueSpec" $ do
     T.whenQueueIsEmpty $ \ prepare -> do
-        HS.prop "read/write = 1/1" . prepare $ \ q -> do
+        T.ioprop "read/write = 1/1" . prepare $ \ q -> do
             test (1,10000) (1,10000) q
-        HS.prop "read/write = 1/10" . prepare $ \ q -> do
+        T.ioprop "read/write = 1/10" . prepare $ \ q -> do
             test (1,10000) (10,1000) q
-        HS.prop "read/write = 10/1" . prepare $ \ q -> do
+        T.ioprop "read/write = 10/1" . prepare $ \ q -> do
             test (10,1000) (1,10000) q
-        HS.prop "read/write = 10/10" . prepare $ \ q -> do
+        T.ioprop "read/write = 10/10" . prepare $ \ q -> do
             test (10,1000) (10,1000) q
     where
         test :: (Int,Int) -> (Int,Int) -> KQ.Queue (Int,Int) -> IO ()
@@ -145,13 +145,13 @@ readWriteQueueSpec = HS.describe "readWriteQueueSpec" $ do
 tryReadWriteQueueSpec :: HS.Spec
 tryReadWriteQueueSpec = HS.describe "tryReadWriteQueueSpec" $ do
     T.whenQueueIsEmpty $ \ prepare -> do
-        HS.prop "read/write = 1/1" . prepare $ \ q -> do
+        T.ioprop "read/write = 1/1" . prepare $ \ q -> do
             test (1,10000) (1,10000) q
-        HS.prop "read/write = 1/10" . prepare $ \ q -> do
+        T.ioprop "read/write = 1/10" . prepare $ \ q -> do
             test (1,10000) (10,1000) q
-        HS.prop "read/write = 10/1" . prepare $ \ q -> do
+        T.ioprop "read/write = 10/1" . prepare $ \ q -> do
             test (10,1000) (1,10000) q
-        HS.prop "read/write = 10/10" . prepare $ \ q -> do
+        T.ioprop "read/write = 10/10" . prepare $ \ q -> do
             test (10,1000) (10,1000) q
     where
         test :: (Int,Int) -> (Int,Int) -> KQ.Queue (Int,Int) -> IO ()
@@ -197,15 +197,15 @@ tryReadWriteQueueSpec = HS.describe "tryReadWriteQueueSpec" $ do
 readQueueWithExceptionSpec :: HS.Spec
 readQueueWithExceptionSpec = HS.describe "readQueueWithExceptionSpec" $ do
     T.whenQueueIsEmpty $ \ prepare -> do
-        HS.prop "read/write = 1/1" . prepare $ \ q -> do
+        T.ioprop "read/write = 1/1" . prepare $ \ q -> do
             test (1,10000) (1,10000) q
-        HS.prop "read/write = 1/10" . prepare $ \ q -> do
+        T.ioprop "read/write = 1/10" . prepare $ \ q -> do
             test (1,10000) (10,1000) q
-        HS.prop "read/write = 10/1" . prepare $ \ q -> do
+        T.ioprop "read/write = 10/1" . prepare $ \ q -> do
             test (10,1000) (1,10000) q
-        HS.prop "read/write = 10/10" . prepare $ \ q -> do
+        T.ioprop "read/write = 10/10" . prepare $ \ q -> do
             test (10,1000) (10,1000) q
-        HS.prop "read/write ratio random 100000" . prepare $ \ q -> do
+        T.ioprop "read/write ratio random 100000" . prepare $ \ q -> do
             let genthnum = Q.arbitrary `Q.suchThat` (> 0)
                                        `Q.suchThat` ((== 0).(100000 `mod`))
             rthnum <- Q.generate $ genthnum

@@ -3,7 +3,9 @@
 
 module Test.Concurrent where
 
-import qualified Test.QuickCheck as Q
+import qualified Test.Hspec            as HS
+import qualified Test.Hspec.QuickCheck as HS
+import qualified Test.QuickCheck       as Q
 
 import qualified Control.Concurrent       as CC
 import qualified Control.Concurrent.Async as AS
@@ -16,6 +18,10 @@ import qualified GHC.Conc                 as CC
 import qualified Data.Maybe       as MB
 import qualified Data.Traversable as TF
 import           Data.Typeable    (Typeable)
+
+-- | Multiple times test enabled IO spec
+ioprop :: (HS.HasCallStack, Q.Testable prop) => String -> prop -> HS.Spec
+ioprop desc prop = HS.prop desc $ \ () -> prop
 
 class HasThread th where
     threadId     :: th -> IO CC.ThreadId

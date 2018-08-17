@@ -18,7 +18,7 @@ import qualified Data.List as L
 takeWVarSeqSpec :: HS.Spec
 takeWVarSeqSpec = HS.describe "takeWVar" $ do
     T.whenWVarIsFresh $ \ prepare -> do
-        HS.prop "takes the value before or after putWVar" $ do
+        T.ioprop "takes the value before or after putWVar" $ do
             (val1, wv) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWVar wv val2 `T.concurrently` do
@@ -27,7 +27,7 @@ takeWVarSeqSpec = HS.describe "takeWVar" $ do
                     [ ret `T.shouldBe` val1
                     , ret `T.shouldBe` val2
                     ]
-        HS.prop "take different value" $ do
+        T.ioprop "take different value" $ do
             (val1, wv) <- prepare
             [val2, val3, val4] <- T.genSatisfy 3 (/= val1)
             ret <- T.mapConcurrently
@@ -44,13 +44,13 @@ takeWVarSeqSpec = HS.describe "takeWVar" $ do
                 , ret `T.shouldBe` [val4,val2,val1]
                 ]
     T.whenWVarIsUpdating $ \ prepare -> do
-        HS.prop "takes the value after putWVar" $ do
+        T.ioprop "takes the value after putWVar" $ do
             (val1, wv) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWVar wv val2 `T.concurrently` do
                 ret <- WV.takeWVar wv
                 ret `T.shouldBe` val2
-        HS.prop "take different value" $ do
+        T.ioprop "take different value" $ do
             (val1 :: Int, wv) <- prepare
             [val2, val3, val4, val5] <- T.genSatisfy 4 (/= val1)
             ret <- T.mapConcurrently
@@ -71,7 +71,7 @@ takeWVarSeqSpec = HS.describe "takeWVar" $ do
 tryTakeWVarSeqSpec :: HS.Spec
 tryTakeWVarSeqSpec = HS.describe "tryTakeWVar" $ do
     T.whenWVarIsFresh $ \ prepare -> do
-        HS.prop "takes the value before or after putWVar" $ do
+        T.ioprop "takes the value before or after putWVar" $ do
             (val1 :: Int, wv) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWVar wv val2 `T.concurrently` do
@@ -80,7 +80,7 @@ tryTakeWVarSeqSpec = HS.describe "tryTakeWVar" $ do
                     [ ret `T.shouldBe` (True, val1)
                     , ret `T.shouldBe` (True, val2)
                     ]
-        HS.prop "all read same value but only one succeeded" $ do
+        T.ioprop "all read same value but only one succeeded" $ do
             (val :: Int, wv) <- prepare
             ret <- T.mapConcurrently
                 [ WV.tryTakeWVar wv
@@ -93,7 +93,7 @@ tryTakeWVarSeqSpec = HS.describe "tryTakeWVar" $ do
                 , ret `T.shouldBe` [(False,val),(False,val),(True,val)]
                 ]
     T.whenWVarIsUpdating $ \ prepare -> do
-        HS.prop "takes the value before(failure) or after(success) putWVar" $ do
+        T.ioprop "takes the value before(failure) or after(success) putWVar" $ do
             (val1 :: Int, wv) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWVar wv val2 `T.concurrently` do
@@ -102,7 +102,7 @@ tryTakeWVarSeqSpec = HS.describe "tryTakeWVar" $ do
                     [ ret `T.shouldBe` (False, val1)
                     , ret `T.shouldBe` (True,  val2)
                     ]
-        HS.prop "all read same value and fail" $ do
+        T.ioprop "all read same value and fail" $ do
             (val :: Int, wv) <- prepare
             ret <- T.mapConcurrently
                 [ WV.tryTakeWVar wv
@@ -114,7 +114,7 @@ tryTakeWVarSeqSpec = HS.describe "tryTakeWVar" $ do
 readFreshWVarSeqSpec :: HS.Spec
 readFreshWVarSeqSpec = HS.describe "readFreshWVar" $ do
     T.whenWVarIsFresh $ \ prepare -> do
-        HS.prop "reads the value before or after putWVar" $ do
+        T.ioprop "reads the value before or after putWVar" $ do
             (val1 :: Int, wv) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWVar wv val2 `T.concurrently` do
@@ -123,7 +123,7 @@ readFreshWVarSeqSpec = HS.describe "readFreshWVar" $ do
                     [ ret `T.shouldBe` val1
                     , ret `T.shouldBe` val2
                     ]
-        HS.prop "read same value" $ do
+        T.ioprop "read same value" $ do
             (val :: Int, wv) <- prepare
             ret <- T.mapConcurrently
                 [ WV.readFreshWVar wv
@@ -132,13 +132,13 @@ readFreshWVarSeqSpec = HS.describe "readFreshWVar" $ do
                 ]
             ret `T.shouldBe` [val,val,val]
     T.whenWVarIsUpdating $ \ prepare -> do
-        HS.prop "reads the value after putWVar" $ do
+        T.ioprop "reads the value after putWVar" $ do
             (val1 :: Int, wv) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWVar wv val2 `T.concurrently` do
                 ret <- WV.readFreshWVar wv
                 ret `T.shouldBe` val2
-        HS.prop "read same value" $ do
+        T.ioprop "read same value" $ do
             (val1 :: Int, wv) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             ret <- T.mapConcurrently
@@ -152,7 +152,7 @@ readFreshWVarSeqSpec = HS.describe "readFreshWVar" $ do
 tryReadFreshWVarSeqSpec :: HS.Spec
 tryReadFreshWVarSeqSpec = HS.describe "tryReadWVar" $ do
     T.whenWVarIsFresh $ \ prepare -> do
-        HS.prop "reads the old value" $ do
+        T.ioprop "reads the old value" $ do
             (val1 :: Int, wv) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWVar wv val2 `T.concurrently` do
@@ -161,7 +161,7 @@ tryReadFreshWVarSeqSpec = HS.describe "tryReadWVar" $ do
                     [ ret `T.shouldBe` (True, val1)
                     , ret `T.shouldBe` (True, val2)
                     ]
-        HS.prop "all read same value and succeed" $ do
+        T.ioprop "all read same value and succeed" $ do
             (val :: Int, wv) <- prepare
             ret <- T.mapConcurrently
                 [ WV.tryReadFreshWVar wv
@@ -170,7 +170,7 @@ tryReadFreshWVarSeqSpec = HS.describe "tryReadWVar" $ do
                 ]
             ret `T.shouldBe` [(True,val),(True,val),(True,val)]
     T.whenWVarIsUpdating $ \ prepare -> do
-        HS.prop "reads the value before(failure) or after(success) putWVar" $ do
+        T.ioprop "reads the value before(failure) or after(success) putWVar" $ do
             (val1 :: Int, wv) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWVar wv val2 `T.concurrently` do
@@ -179,7 +179,7 @@ tryReadFreshWVarSeqSpec = HS.describe "tryReadWVar" $ do
                     [ ret `T.shouldBe` (False, val1)
                     , ret `T.shouldBe` (True,  val2)
                     ]
-        HS.prop "all read same value and fail" $ do
+        T.ioprop "all read same value and fail" $ do
             (val :: Int, wv) <- prepare
             ret <- T.mapConcurrently
                 [ WV.tryReadFreshWVar wv
@@ -191,7 +191,7 @@ tryReadFreshWVarSeqSpec = HS.describe "tryReadWVar" $ do
 takeWCachedSeqSpec :: HS.Spec
 takeWCachedSeqSpec = HS.describe "takeWCached" $ do
     T.whenWVarIsFresh . T.withLatestCache $ \ prepare -> do
-        HS.prop "takes the value before or after putWCached" $ do
+        T.ioprop "takes the value before or after putWCached" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
@@ -200,7 +200,7 @@ takeWCachedSeqSpec = HS.describe "takeWCached" $ do
                     [ WV.readWTicket wt `T.shouldBe` val1
                     , WV.readWTicket wt `T.shouldBe` val2
                     ]
-        HS.prop "take different value" $ do
+        T.ioprop "take different value" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2, val3, val4] <- T.genSatisfy 3 (/= val1)
             ret <- fmap WV.readWTicket <$> T.mapConcurrently
@@ -217,13 +217,13 @@ takeWCachedSeqSpec = HS.describe "takeWCached" $ do
                 , ret `T.shouldBe` [val4,val2,val1]
                 ]
     T.whenWVarIsUpdating . T.withLatestCache $ \ prepare -> do
-        HS.prop "takes the value after putWCached" $ do
+        T.ioprop "takes the value after putWCached" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 ret <- WV.takeWCached wc
                 WV.readWTicket ret `T.shouldBe` val2
-        HS.prop "take different value" $ do
+        T.ioprop "take different value" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2, val3, val4, val5] <- T.genSatisfy 4 (/= val1)
             ret <- T.mapConcurrently
@@ -241,7 +241,7 @@ takeWCachedSeqSpec = HS.describe "takeWCached" $ do
                 , ret `T.shouldBe` [val2,val5,val3,val2]
                 ]
     T.whenWVarIsFreshButCacheStaled $ \ prepare -> do
-        HS.prop "takes the value before or after putWCached" $ do
+        T.ioprop "takes the value before or after putWCached" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
@@ -250,7 +250,7 @@ takeWCachedSeqSpec = HS.describe "takeWCached" $ do
                     [ WV.readWTicket wt `T.shouldBe` val1
                     , WV.readWTicket wt `T.shouldBe` val2
                     ]
-        HS.prop "take different value" $ do
+        T.ioprop "take different value" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2, val3, val4] <- T.genSatisfy 3 (/= val1)
             ret <- fmap WV.readWTicket <$> T.mapConcurrently
@@ -267,13 +267,13 @@ takeWCachedSeqSpec = HS.describe "takeWCached" $ do
                 , ret `T.shouldBe` [val4,val2,val1]
                 ]
     T.whenWVarIsUpdatingAndCacheStaled $ \ prepare -> do
-        HS.prop "takes the value after putWCached" $ do
+        T.ioprop "takes the value after putWCached" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 ret <- WV.takeWCached wc
                 WV.readWTicket ret `T.shouldBe` val2
-        HS.prop "take different value" $ do
+        T.ioprop "take different value" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2, val3, val4, val5] <- T.genSatisfy 4 (/= val1)
             ret <- T.mapConcurrently
@@ -294,7 +294,7 @@ takeWCachedSeqSpec = HS.describe "takeWCached" $ do
 tryTakeWCachedSeqSpec :: HS.Spec
 tryTakeWCachedSeqSpec = HS.describe "tryTakeWCached" $ do
     T.whenWVarIsFresh . T.withLatestCache $ \ prepare -> do
-        HS.prop "takes the value before(failure)/after(success) putWCached" $ do
+        T.ioprop "takes the value before(failure)/after(success) putWCached" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
@@ -303,7 +303,7 @@ tryTakeWCachedSeqSpec = HS.describe "tryTakeWCached" $ do
                     [ (ret, WV.readWTicket wt) `T.shouldBe` (True, val1)
                     , (ret, WV.readWTicket wt) `T.shouldBe` (False, val2)
                     ]
-        HS.prop "all read same value but only one succeeded" $ do
+        T.ioprop "all read same value but only one succeeded" $ do
             (_, val1 :: Int, _, wc) <- prepare
             ret <- fmap (fmap WV.readWTicket) <$> T.mapConcurrently
                 [ WV.tryTakeWCached wc
@@ -316,7 +316,7 @@ tryTakeWCachedSeqSpec = HS.describe "tryTakeWCached" $ do
                 , ret `T.shouldBe` [(False,val1),(False,val1),(True,val1)]
                 ]
     T.whenWVarIsUpdating . T.withLatestCache $ \ prepare -> do
-        HS.prop "takes the value before or after putWCached with failure" $ do
+        T.ioprop "takes the value before or after putWCached with failure" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
@@ -325,7 +325,7 @@ tryTakeWCachedSeqSpec = HS.describe "tryTakeWCached" $ do
                     [ (ret, WV.readWTicket wt) `T.shouldBe` (False, val1)
                     , (ret, WV.readWTicket wt) `T.shouldBe` (False, val2)
                     ]
-        HS.prop "all read same value and fail" $ do
+        T.ioprop "all read same value and fail" $ do
             (_, val1 :: Int, _, wc) <- prepare
             ret <- fmap (fmap WV.readWTicket) <$> T.mapConcurrently
                 [ WV.tryTakeWCached wc
@@ -334,7 +334,7 @@ tryTakeWCachedSeqSpec = HS.describe "tryTakeWCached" $ do
                 ]
             ret `T.shouldBe` [(False,val1),(False,val1),(False,val1)]
     T.whenWVarIsFreshButCacheStaled $ \ prepare -> do
-        HS.prop "takes the value before or after putWCached with failure" $ do
+        T.ioprop "takes the value before or after putWCached with failure" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
@@ -343,7 +343,7 @@ tryTakeWCachedSeqSpec = HS.describe "tryTakeWCached" $ do
                     [ (ret, WV.readWTicket wt) `T.shouldBe` (False, val1)
                     , (ret, WV.readWTicket wt) `T.shouldBe` (False, val2)
                     ]
-        HS.prop "all read same value and fail" $ do
+        T.ioprop "all read same value and fail" $ do
             (_, val1 :: Int, _, wc) <- prepare
             ret <- fmap (fmap WV.readWTicket) <$> T.mapConcurrently
                 [ WV.tryTakeWCached wc
@@ -352,7 +352,7 @@ tryTakeWCachedSeqSpec = HS.describe "tryTakeWCached" $ do
                 ]
             ret `T.shouldBe` [(False,val1),(False,val1),(False,val1)]
     T.whenWVarIsUpdatingAndCacheStaled $ \ prepare -> do
-        HS.prop "takes the value before or after putWCached with failure" $ do
+        T.ioprop "takes the value before or after putWCached with failure" $ do
             (_, val1 :: Int, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
@@ -361,7 +361,7 @@ tryTakeWCachedSeqSpec = HS.describe "tryTakeWCached" $ do
                     [ (ret, WV.readWTicket wt) `T.shouldBe` (False, val1)
                     , (ret, WV.readWTicket wt) `T.shouldBe` (False, val2)
                     ]
-        HS.prop "all read same value and fail" $ do
+        T.ioprop "all read same value and fail" $ do
             (_, val1 :: Int, _, wc) <- prepare
             ret <- fmap (fmap WV.readWTicket) <$> T.mapConcurrently
                 [ WV.tryTakeWCached wc
@@ -373,13 +373,13 @@ tryTakeWCachedSeqSpec = HS.describe "tryTakeWCached" $ do
 readFreshWCachedSeqSpec :: HS.Spec
 readFreshWCachedSeqSpec = HS.describe "readFreshWCached" $ do
     T.whenWVarIsFresh . T.withLatestCache $ \ prepare -> do
-        HS.prop "reads the value before or after putWCached" $ do
+        T.ioprop "reads the value before or after putWCached" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 wt <- WV.readFreshWCached wc `T.shouldNotBlock` 500000
                 WV.readWTicket wt `T.shouldBe` val1
-        HS.prop "read same value" $ do
+        T.ioprop "read same value" $ do
             (val1 :: Int, _, _, wc) <- prepare
             ret <- fmap WV.readWTicket <$> T.mapConcurrently
                 [ WV.readFreshWCached wc
@@ -388,13 +388,13 @@ readFreshWCachedSeqSpec = HS.describe "readFreshWCached" $ do
                 ]
             ret `T.shouldBe` [val1,val1,val1]
     T.whenWVarIsUpdating . T.withLatestCache $ \ prepare -> do
-        HS.prop "reads the value after putWCached" $ do
+        T.ioprop "reads the value after putWCached" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 wt <- WV.readFreshWCached wc
                 WV.readWTicket wt `T.shouldBe` val2
-        HS.prop "read same value" $ do
+        T.ioprop "read same value" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             ret <- T.mapConcurrently
@@ -405,13 +405,13 @@ readFreshWCachedSeqSpec = HS.describe "readFreshWCached" $ do
                 ]
             ret `T.shouldBe` [val2,val2,val2,val2]
     T.whenWVarIsFreshButCacheStaled $ \ prepare -> do
-        HS.prop "reads the value before or after putWCached" $ do
+        T.ioprop "reads the value before or after putWCached" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 wt <- WV.readFreshWCached wc `T.shouldNotBlock` 500000
                 WV.readWTicket wt `T.shouldBe` val1
-        HS.prop "read same value" $ do
+        T.ioprop "read same value" $ do
             (val1 :: Int, _, _, wc) <- prepare
             ret <- fmap WV.readWTicket <$> T.mapConcurrently
                 [ WV.readFreshWCached wc
@@ -420,13 +420,13 @@ readFreshWCachedSeqSpec = HS.describe "readFreshWCached" $ do
                 ]
             ret `T.shouldBe` [val1,val1,val1]
     T.whenWVarIsUpdatingAndCacheStaled $ \ prepare -> do
-        HS.prop "reads the value after putWCached" $ do
+        T.ioprop "reads the value after putWCached" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 ret <- WV.readWTicket <$> WV.readFreshWCached wc
                 ret `T.shouldBe` val1
-        HS.prop "read same value" $ do
+        T.ioprop "read same value" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             ret <- T.mapConcurrently
@@ -440,13 +440,13 @@ readFreshWCachedSeqSpec = HS.describe "readFreshWCached" $ do
 tryReadFreshWCachedSeqSpec :: HS.Spec
 tryReadFreshWCachedSeqSpec = HS.describe "tryReadWCached" $ do
     T.whenWVarIsFresh . T.withLatestCache $ \ prepare -> do
-        HS.prop "reads the old value and succeed" $ do
+        T.ioprop "reads the old value and succeed" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 ret <- WV.tryReadFreshWCached wc `T.shouldNotBlock` 500000
                 fmap WV.readWTicket ret `T.shouldBe` (True, val1)
-        HS.prop "all read same value and succeed" $ do
+        T.ioprop "all read same value and succeed" $ do
             (val1 :: Int, _, _, wc) <- prepare
             ret <- fmap (fmap WV.readWTicket) <$> T.mapConcurrently
                 [ WV.tryReadFreshWCached wc
@@ -455,13 +455,13 @@ tryReadFreshWCachedSeqSpec = HS.describe "tryReadWCached" $ do
                 ]
             ret `T.shouldBe` [(True,val1),(True,val1),(True,val1)]
     T.whenWVarIsUpdating . T.withLatestCache $ \ prepare -> do
-        HS.prop "reads the old value and fail" $ do
+        T.ioprop "reads the old value and fail" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 ret <- WV.tryReadFreshWCached wc `T.shouldNotBlock` 500000
                 fmap WV.readWTicket ret `T.shouldBe` (False, val1)
-        HS.prop "all read same value and fail" $ do
+        T.ioprop "all read same value and fail" $ do
             (val1 :: Int, _, _, wc) <- prepare
             ret <- fmap (fmap WV.readWTicket) <$> T.mapConcurrently
                 [ WV.tryReadFreshWCached wc
@@ -470,13 +470,13 @@ tryReadFreshWCachedSeqSpec = HS.describe "tryReadWCached" $ do
                 ]
             ret `T.shouldBe` [(False,val1),(False,val1),(False,val1)]
     T.whenWVarIsFreshButCacheStaled $ \ prepare -> do
-        HS.prop "reads the old value and succeed" $ do
+        T.ioprop "reads the old value and succeed" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 ret <- WV.tryReadFreshWCached wc `T.shouldNotBlock` 500000
                 fmap WV.readWTicket ret `T.shouldBe` (True, val1)
-        HS.prop "all read same value and succeed" $ do
+        T.ioprop "all read same value and succeed" $ do
             (val1 :: Int, _, _, wc) <- prepare
             ret <- fmap (fmap WV.readWTicket) <$> T.mapConcurrently
                 [ WV.tryReadFreshWCached wc
@@ -485,13 +485,13 @@ tryReadFreshWCachedSeqSpec = HS.describe "tryReadWCached" $ do
                 ]
             ret `T.shouldBe` [(True,val1),(True,val1),(True,val1)]
     T.whenWVarIsUpdating . T.withLatestCache $ \ prepare -> do
-        HS.prop "reads the old value and fail" $ do
+        T.ioprop "reads the old value and fail" $ do
             (val1 :: Int, _, _, wc) <- prepare
             [val2] <- T.genSatisfy 1 (/= val1)
             M.void $ WV.putWCached wc val2 `T.concurrently` do
                 ret <- WV.tryReadFreshWCached wc `T.shouldNotBlock` 500000
                 fmap WV.readWTicket ret `T.shouldBe` (False, val1)
-        HS.prop "all read same value and fail" $ do
+        T.ioprop "all read same value and fail" $ do
             (val1 :: Int, _, _, wc) <- prepare
             ret <- fmap (fmap WV.readWTicket) <$> T.mapConcurrently
                 [ WV.tryReadFreshWCached wc
@@ -502,7 +502,7 @@ tryReadFreshWCachedSeqSpec = HS.describe "tryReadWCached" $ do
 
 tryTakeAndPutCachedSeqSpec :: HS.Spec
 tryTakeAndPutCachedSeqSpec =
-    HS.prop "tryTakeWCached and putWCached perform atomic modification" $ do
+    T.ioprop "tryTakeWCached and putWCached perform atomic modification" $ do
         wv <- WV.newWVar (0 :: Int)
         wc <- WV.cacheWVar wv
         ret <- L.sort . L.concat <$> T.mapConcurrently (countConc10 wc)
