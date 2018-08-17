@@ -218,9 +218,6 @@ readQueueWithExceptionSpec = HS.describe "readQueueWithExceptionSpec" $ do
         test readConfig writeConfig q = do
             (results, writtens) <- readConcurrent q readConfig
                 `T.concurrently` writeConcurrent q writeConfig
---            putStrLn "-------------------"
---            print results
---            putStrLn "-------------------"
             case checkEachResult results of
                 Right _  -> return ()
                 Left str -> T.assertFailure str
