@@ -7,8 +7,7 @@ import qualified Test.Expectations as T
 import qualified Test.Util         as T
 import qualified Test.WVar         as T
 
-import qualified Test.Hspec            as HS
-import qualified Test.Hspec.QuickCheck as HS
+import qualified Test.Hspec as HS
 
 import qualified Control.Concurrent.WVar as WV
 import qualified Control.Monad           as M

@@ -9,9 +9,8 @@ import qualified Test.Expectations as T
 import qualified Test.KazuraQueue  as T
 import qualified Test.Util         as T
 
-import qualified Test.Hspec            as HS
-import qualified Test.Hspec.QuickCheck as HS
-import qualified Test.QuickCheck       as Q
+import qualified Test.Hspec      as HS
+import qualified Test.QuickCheck as Q
 
 import qualified Control.Concurrent             as CC
 import qualified Control.Concurrent.Async       as AS
