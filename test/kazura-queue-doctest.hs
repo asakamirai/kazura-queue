@@ -1,9 +1,9 @@
 module Main where
 
-import Test.DocTest
+import qualified Test.DocTest as Doc
 
 main :: IO ()
-main = doctest
+main = Doc.doctest
     [ "-isrc"
     , "src/Control/Concurrent/WVar.hs"
     , "src/Control/Concurrent/KazuraQueue.hs"

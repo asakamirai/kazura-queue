@@ -1,0 +1,99 @@
+name:                kazura-queue
+version:             0.1.0.3
+github:              "asakamirai/kazura-queue"
+license:             BSD3
+author:              "Asakamirai"
+maintainer:          "asakamirai_hackage@towanowa.net"
+copyright:           "2016-2018 Asakamirai"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+synopsis:            Fast concurrent queues much inspired by unagi-chan
+category:            Concurrency
+
+description:         |
+     \"kazura-queue\" provides an implementation of FIFO queue.
+     It is faster than Chan, TQueue or TChan by the benefit of fetch-and-add
+     instruction.
+     .
+     Main motivation of this package is to solve some difficulty of
+     "unagi-chan" package.
+     .
+     - In "unagi-chan", the item in the queue/chan can be lost when async
+       exception is throwed to the read thread while waiting for read.
+       (Although it has handler to recover lost item,
+        it is difficult to keep FIFO in such case)
+     .
+     - In "unagi-chan", garbage items of the queue cannot be collected
+       immediately.
+       Since the buffer in the queue has the reference to the items until the
+       buffer is garbage-collected.
+     .
+     \"kazura-queue\" is slightly slower than "unagi-chan" instead of solving
+     these issues.
+     .
+     \"kazura-queue\" lost broadcast function to improve the second issue.
+     It means that kazura-queue is not \"Chan\" but is just \"Queue\".
+
+dependencies:
+- base >= 4.7 && < 5
+- primitive      >= 0.5.3
+- atomic-primops >= 0.8
+- async          >= 2.0
+- containers     >= 0.5
+
+library:
+  source-dirs: src
+  ghc-options:
+  - -Wall
+  - -O2
+
+benchmarks:
+  kazura-queue-bench:
+    main: Main.hs
+    ghc-options:
+    - -Wall
+    - -O2
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - kazura-queue
+    - stm       >= 2.4
+    - criterion >= 1.1
+
+tests:
+  kazura-queue-doctest:
+    main: test/kazura-queue-doctest.hs
+    ghc-options:
+    - -Wall
+    - -O2
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - kazura-queue
+    - doctest
+    - QuickCheck         >= 2.8
+  kazura-queue-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+    - -Wall
+    - -O2
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - kazura-queue
+    - HUnit              >= 1.2
+    - hspec              >= 2.1
+    - hspec-expectations >= 0.7
+    - QuickCheck         >= 2.8
+    - deepseq            >= 1.4
+    - mtl                >= 2.2
+    - transformers       >= 0.4
+    - free               >= 4.12
+    - exceptions         >= 0.8
