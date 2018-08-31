@@ -506,19 +506,19 @@ tryTakeAndPutCachedSeqSpec =
         wc <- WV.cacheWVar wv
         ret <- L.sort . L.concat <$> T.mapConcurrently (countConc10 wc)
         ret `T.shouldBe` [1..1000]
-    where
-        countConc10 wc = L.replicate 10 $ count100 wc
-        count100 wc = M.replicateM 100 $ countOne wc
-        countOne wc = do
-            (suc, wt1) <- WV.tryTakeWCached wc
-            let val = WV.readWTicket wt1
-            if suc
-                then do
-                    wt2 <- WV.putWCached wc $ val + 1
-                    return $ WV.readWTicket wt2
-                else do
-                    wt2 <- WV.readFreshWCached wc { WV.cachedTicket = wt1 }
-                    countOne wc { WV.cachedTicket = wt2 }
+  where
+    countConc10 wc = L.replicate 10 $ count100 wc
+    count100 wc = M.replicateM 100 $ countOne wc
+    countOne wc = do
+        (suc, wt1) <- WV.tryTakeWCached wc
+        let val = WV.readWTicket wt1
+        if suc
+            then do
+                wt2 <- WV.putWCached wc $ val + 1
+                return $ WV.readWTicket wt2
+            else do
+                wt2 <- WV.readFreshWCached wc { WV.cachedTicket = wt1 }
+                countOne wc { WV.cachedTicket = wt2 }
 
 wvarSpec :: HS.Spec
 wvarSpec = do

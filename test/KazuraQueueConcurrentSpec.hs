@@ -107,39 +107,39 @@ readWriteQueueSpec = HS.describe "readWriteQueueSpec" $ do
             test (10,1000) (1,10000) q
         T.ioprop "read/write = 10/10" . prepare $ \ q -> do
             test (10,1000) (10,1000) q
-    where
-        test :: (Int,Int) -> (Int,Int) -> KQ.Queue (Int,Int) -> IO ()
-        test readConfig writeConfig q = do
-            (results, writtens) <-
-                readConcurrent q readConfig
-                    `T.concurrently` writeConcurrent q writeConfig
-            case checkEachResult results of
-                Right _  -> return ()
-                Left str -> T.assertFailure str
-            let result  = L.concat results
-                written = L.concat writtens
-                resultSet  = Set.fromList result
-                writtenSet = Set.fromList written
-            length result `T.shouldBe` length written
-            (writtenSet `Set.difference` resultSet) `T.shouldBe` Set.empty
-        checkEachResult = TF.traverse checkEachItems
-        checkEachItems  = L.foldl' checkItems $ Right Map.empty
-        checkItems (Right mp) (thnum, num)
-            | Map.lookup thnum mp < Just num = Right $ Map.insert thnum num mp
-            | Map.lookup thnum mp > Just num = Left "broken order"
-            | otherwise                      = Left "duplicated value"
-        checkItems err _ = err
-        readItems  q size  = M.replicateM size $ KQ.readQueue q
-        writeItems q items = do
-            TF.for_ items $ KQ.writeQueue q
-            return items
-        readConcurrent  q (thsize, itemsize) = do
-            ass <- M.replicateM thsize . AS.async $ readItems q itemsize
-            TF.for ass AS.wait
-        writeConcurrent q (thsize, itemsize) = do
-            ass <- TF.for [1..thsize] $ \ thnum ->
-                AS.async . writeItems q $ fmap (thnum,) [1..itemsize]
-            TF.for ass AS.wait
+  where
+    test :: (Int,Int) -> (Int,Int) -> KQ.Queue (Int,Int) -> IO ()
+    test readConfig writeConfig q = do
+        (results, writtens) <-
+            readConcurrent q readConfig
+                `T.concurrently` writeConcurrent q writeConfig
+        case checkEachResult results of
+            Right _  -> return ()
+            Left str -> T.assertFailure str
+        let result  = L.concat results
+            written = L.concat writtens
+            resultSet  = Set.fromList result
+            writtenSet = Set.fromList written
+        length result `T.shouldBe` length written
+        (writtenSet `Set.difference` resultSet) `T.shouldBe` Set.empty
+    checkEachResult = TF.traverse checkEachItems
+    checkEachItems  = L.foldl' checkItems $ Right Map.empty
+    checkItems (Right mp) (thnum, num)
+        | Map.lookup thnum mp < Just num = Right $ Map.insert thnum num mp
+        | Map.lookup thnum mp > Just num = Left "broken order"
+        | otherwise                      = Left "duplicated value"
+    checkItems err _ = err
+    readItems  q size  = M.replicateM size $ KQ.readQueue q
+    writeItems q items = do
+        TF.for_ items $ KQ.writeQueue q
+        return items
+    readConcurrent  q (thsize, itemsize) = do
+        ass <- M.replicateM thsize . AS.async $ readItems q itemsize
+        TF.for ass AS.wait
+    writeConcurrent q (thsize, itemsize) = do
+        ass <- TF.for [1..thsize] $ \ thnum ->
+            AS.async . writeItems q $ fmap (thnum,) [1..itemsize]
+        TF.for ass AS.wait
 
 tryReadWriteQueueSpec :: HS.Spec
 tryReadWriteQueueSpec = HS.describe "tryReadWriteQueueSpec" $ do
@@ -152,46 +152,46 @@ tryReadWriteQueueSpec = HS.describe "tryReadWriteQueueSpec" $ do
             test (10,1000) (1,10000) q
         T.ioprop "read/write = 10/10" . prepare $ \ q -> do
             test (10,1000) (10,1000) q
-    where
-        test :: (Int,Int) -> (Int,Int) -> KQ.Queue (Int,Int) -> IO ()
-        test readConfig writeConfig q = do
-            (results, writtens) <-
-                readConcurrent q readConfig
-                    `T.concurrently` writeConcurrent q writeConfig
-            case checkEachResult results of
-                Right _  -> return ()
-                Left str -> T.assertFailure str
-            let result  = L.concat results
-                written = L.concat writtens
-                resultSet  = Set.fromList result
-                writtenSet = Set.fromList written
-            length result `T.shouldBe` length written
-            (writtenSet `Set.difference` resultSet) `T.shouldBe` Set.empty
-        checkEachResult = TF.traverse checkEachItems
-        checkEachItems  = L.foldl' checkItems $ Right Map.empty
-        checkItems (Right mp) (thnum, num)
-            | Map.lookup thnum mp < Just num = Right $ Map.insert thnum num mp
-            | Map.lookup thnum mp > Just num = Left "broken order"
-            | otherwise                      = Left "duplicated value"
-        checkItems err _ = err
-        readItem q = do
-            mret <- KQ.tryReadQueue q
-            case mret of
-                Just ret -> return ret
-                Nothing  -> do
-                    CC.yield
-                    readItem q
-        readItems  q size  = M.replicateM size $ readItem q
-        writeItems q items = do
-            TF.for_ items $ KQ.writeQueue q
-            return items
-        readConcurrent  q (thsize, itemsize) = do
-            ass <- M.replicateM thsize . AS.async $ readItems q itemsize
-            TF.for ass AS.wait
-        writeConcurrent q (thsize, itemsize) = do
-            ass <- TF.for [1..thsize] $ \ thnum ->
-                AS.async . writeItems q $ fmap (thnum,) [1..itemsize]
-            TF.for ass AS.wait
+  where
+    test :: (Int,Int) -> (Int,Int) -> KQ.Queue (Int,Int) -> IO ()
+    test readConfig writeConfig q = do
+        (results, writtens) <-
+            readConcurrent q readConfig
+                `T.concurrently` writeConcurrent q writeConfig
+        case checkEachResult results of
+            Right _  -> return ()
+            Left str -> T.assertFailure str
+        let result  = L.concat results
+            written = L.concat writtens
+            resultSet  = Set.fromList result
+            writtenSet = Set.fromList written
+        length result `T.shouldBe` length written
+        (writtenSet `Set.difference` resultSet) `T.shouldBe` Set.empty
+    checkEachResult = TF.traverse checkEachItems
+    checkEachItems  = L.foldl' checkItems $ Right Map.empty
+    checkItems (Right mp) (thnum, num)
+        | Map.lookup thnum mp < Just num = Right $ Map.insert thnum num mp
+        | Map.lookup thnum mp > Just num = Left "broken order"
+        | otherwise                      = Left "duplicated value"
+    checkItems err _ = err
+    readItem q = do
+        mret <- KQ.tryReadQueue q
+        case mret of
+            Just ret -> return ret
+            Nothing  -> do
+                CC.yield
+                readItem q
+    readItems  q size  = M.replicateM size $ readItem q
+    writeItems q items = do
+        TF.for_ items $ KQ.writeQueue q
+        return items
+    readConcurrent  q (thsize, itemsize) = do
+        ass <- M.replicateM thsize . AS.async $ readItems q itemsize
+        TF.for ass AS.wait
+    writeConcurrent q (thsize, itemsize) = do
+        ass <- TF.for [1..thsize] $ \ thnum ->
+            AS.async . writeItems q $ fmap (thnum,) [1..itemsize]
+        TF.for ass AS.wait
 
 readQueueWithExceptionSpec :: HS.Spec
 readQueueWithExceptionSpec = HS.describe "readQueueWithExceptionSpec" $ do
@@ -212,81 +212,81 @@ readQueueWithExceptionSpec = HS.describe "readQueueWithExceptionSpec" $ do
             let rnum = 100000 `div` rthnum
                 wnum = 100000 `div` wthnum
             test (rthnum,rnum) (wthnum,wnum) q
-    where
-        test :: (Int,Int) -> (Int,Int) -> KQ.Queue (Int,Int) -> IO ()
-        test readConfig writeConfig q = do
-            (results, writtens) <- readConcurrent q readConfig
-                `T.concurrently` writeConcurrent q writeConfig
-            case checkEachResult results of
-                Right _  -> return ()
-                Left str -> T.assertFailure str
-            let result  = L.concat results
-                written = L.concat writtens
-                resultSet  = Set.fromList result
-                writtenSet = Set.fromList written
-            length result `T.shouldBe` length written
-            (writtenSet `Set.difference` resultSet) `T.shouldBe` Set.empty
-        checkEachResult = TF.traverse checkEachItems
-        checkEachItems  = L.foldl' checkItems $ Right Map.empty
-        checkItems (Right mp) (thnum, num)
-            | Map.lookup thnum mp < Just num = Right $ Map.insert thnum num mp
-            | Map.lookup thnum mp > Just num = Left "broken order"
-            | otherwise                      = Left "duplicated value"
-        checkItems err _ = err
-        readItem refItems refCount q = do
-            r <- KQ.readQueueWithoutMask q
-            Ref.modifyIORef refCount (1+)
-            Ref.modifyIORef refItems (r:)
-        tryReadItem refItems refCount q = do
-            mr <- KQ.tryReadQueueWithoutMask q
-            case mr of
-                Just r  -> do
-                    Ref.modifyIORef refCount (1+)
-                    Ref.modifyIORef refItems (r:)
-                Nothing -> do
-                    CC.yield
-                    tryReadItem refItems refCount q
-        readItemOne refItems refCount q = E.mask_ $ do
-            select <- Q.generate Q.arbitrary
-            if select
-                then readItem    refItems refCount q
-                else tryReadItem refItems refCount q
-        readItems refItems refCount q size restore !c = do
-            M.void . T.ignoreException . restore $ readItemOne refItems refCount q
-            count <- Ref.readIORef refCount
-            M.when (count < size && c < size * 100) $
-                readItems refItems refCount q size restore $ c + 1
-        readConcurrent q (thsize, itemsize) = do
-            ass <- E.mask $ \ restore ->
-                M.replicateM thsize . AS.async $ do
-                    refItems <- Ref.newIORef []
-                    refCount <- Ref.newIORef 0
-                    readItems refItems refCount q itemsize restore (0 :: Int)
-                    reverse <$> Ref.readIORef refItems
-            M.void . AS.async $ T.throwExceptionRandomly ass
-            TF.for ass AS.wait
-        writeItem refItems q = E.mask_ $ do
-            items <- Ref.readIORef refItems
-            case items of
-                []     -> return Nothing
-                v:next -> do
-                    KQ.writeQueueWithoutMask q v
-                    Ref.writeIORef refItems next
-                    return $ Just v
-        writeItems refItems q restore !c = do
-            mmwritten <- T.ignoreException . restore $ writeItem refItems q
-            case mmwritten of
-                Just Nothing -> return ()
-                _            -> writeItems refItems q restore $ c + 1
-        writeConcurrent q (thsize, itemsize) = do
-            ass <- E.mask $ \ restore ->
-                TF.for [1..thsize] $ \ thnum -> AS.async $ do
-                    let items = fmap (thnum,) [1..itemsize] :: [(Int, Int)]
-                    refItems <- Ref.newIORef items
-                    writeItems refItems q restore (0 :: Int)
-                    return items
-            M.void . AS.async $ T.throwExceptionRandomly ass
-            TF.for ass AS.wait
+  where
+    test :: (Int,Int) -> (Int,Int) -> KQ.Queue (Int,Int) -> IO ()
+    test readConfig writeConfig q = do
+        (results, writtens) <- readConcurrent q readConfig
+            `T.concurrently` writeConcurrent q writeConfig
+        case checkEachResult results of
+            Right _  -> return ()
+            Left str -> T.assertFailure str
+        let result  = L.concat results
+            written = L.concat writtens
+            resultSet  = Set.fromList result
+            writtenSet = Set.fromList written
+        length result `T.shouldBe` length written
+        (writtenSet `Set.difference` resultSet) `T.shouldBe` Set.empty
+    checkEachResult = TF.traverse checkEachItems
+    checkEachItems  = L.foldl' checkItems $ Right Map.empty
+    checkItems (Right mp) (thnum, num)
+        | Map.lookup thnum mp < Just num = Right $ Map.insert thnum num mp
+        | Map.lookup thnum mp > Just num = Left "broken order"
+        | otherwise                      = Left "duplicated value"
+    checkItems err _ = err
+    readItem refItems refCount q = do
+        r <- KQ.readQueueWithoutMask q
+        Ref.modifyIORef refCount (1+)
+        Ref.modifyIORef refItems (r:)
+    tryReadItem refItems refCount q = do
+        mr <- KQ.tryReadQueueWithoutMask q
+        case mr of
+            Just r  -> do
+                Ref.modifyIORef refCount (1+)
+                Ref.modifyIORef refItems (r:)
+            Nothing -> do
+                CC.yield
+                tryReadItem refItems refCount q
+    readItemOne refItems refCount q = E.mask_ $ do
+        select <- Q.generate Q.arbitrary
+        if select
+            then readItem    refItems refCount q
+            else tryReadItem refItems refCount q
+    readItems refItems refCount q size restore !c = do
+        M.void . T.ignoreException . restore $ readItemOne refItems refCount q
+        count <- Ref.readIORef refCount
+        M.when (count < size && c < size * 100) $
+            readItems refItems refCount q size restore $ c + 1
+    readConcurrent q (thsize, itemsize) = do
+        ass <- E.mask $ \ restore ->
+            M.replicateM thsize . AS.async $ do
+                refItems <- Ref.newIORef []
+                refCount <- Ref.newIORef 0
+                readItems refItems refCount q itemsize restore (0 :: Int)
+                reverse <$> Ref.readIORef refItems
+        M.void . AS.async $ T.throwExceptionRandomly ass
+        TF.for ass AS.wait
+    writeItem refItems q = E.mask_ $ do
+        items <- Ref.readIORef refItems
+        case items of
+            []     -> return Nothing
+            v:next -> do
+                KQ.writeQueueWithoutMask q v
+                Ref.writeIORef refItems next
+                return $ Just v
+    writeItems refItems q restore !c = do
+        mmwritten <- T.ignoreException . restore $ writeItem refItems q
+        case mmwritten of
+            Just Nothing -> return ()
+            _            -> writeItems refItems q restore $ c + 1
+    writeConcurrent q (thsize, itemsize) = do
+        ass <- E.mask $ \ restore ->
+            TF.for [1..thsize] $ \ thnum -> AS.async $ do
+                let items = fmap (thnum,) [1..itemsize] :: [(Int, Int)]
+                refItems <- Ref.newIORef items
+                writeItems refItems q restore (0 :: Int)
+                return items
+        M.void . AS.async $ T.throwExceptionRandomly ass
+        TF.for ass AS.wait
 
 spec :: HS.Spec
 spec = HS.describe "KazuraQueue concurrent specs" $ do

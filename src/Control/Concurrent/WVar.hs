@@ -45,7 +45,7 @@ module Control.Concurrent.WVar
     , readFreshWCached
     , tryReadFreshWCached
     )
-    where
+  where
 
 import           Control.Concurrent.MVar (MVar)
 import qualified Control.Concurrent.MVar as MVar
@@ -83,12 +83,12 @@ takeWVar wv = do
 {-# INLINE tryTakeWVar #-}
 tryTakeWVar :: WVar a -> IO (Bool, a)
 tryTakeWVar wv = cacheWVar wv >>= go
-    where
-        go wc = do
-            (suc, wt1) <- tryTakeWCached wc
-            case (suc, wstate (Atm.peekTicket wt1)) of
-                (False, Fresh) -> go $ WCached wv wt1
-                _              -> return (suc, readWTicket wt1)
+  where
+    go wc = do
+        (suc, wt1) <- tryTakeWCached wc
+        case (suc, wstate (Atm.peekTicket wt1)) of
+            (False, Fresh) -> go $ WCached wv wt1
+            _              -> return (suc, readWTicket wt1)
 
 -- | Put the supplied value into a 'WVar'.
 --   It performs simple "write" when the 'WVar' is Fresh.

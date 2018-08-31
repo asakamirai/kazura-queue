@@ -48,9 +48,9 @@ logBufferLength = 6
 {-# INLINE divModBufferLength #-}
 divModBufferLength :: Int -> (Int,Int)
 divModBufferLength n = d `seq` m `seq` (d,m)
-    where
-        d = n `Bits.unsafeShiftR` logBufferLength
-        m = n .&. (bufferLength - 1)
+  where
+    d = n `Bits.unsafeShiftR` logBufferLength
+    m = n .&. (bufferLength - 1)
 
 --------------------------------
 -- Queue
@@ -126,10 +126,10 @@ newQueue = do
         , queueReadState    = rsvar
         , queueNoneTicket   = noneTicket
         }
-    where
-        -- for test of counter overflow
-        initialOffset = maxBound - 3
-        initialIndex  = initialOffset - 1
+  where
+    -- for test of counter overflow
+    initialOffset = maxBound - 3
+    initialIndex  = initialOffset - 1
 
 ----------------------------------------------------------
 
@@ -182,10 +182,10 @@ readQueueRaw queue rswc0 = do
             rswt1 <- extendReadStreamWithLock rstr0 rswc0 True True
             let rswc1 = rswc0 { WVar.cachedTicket = rswt1 }
             readQueueRaw queue rswc1
-    where
-        rstrRef = queueReadStream queue
-        rswt0 = WVar.cachedTicket rswc0
-        (ReadState rcounter rlimit0) = WVar.readWTicket rswt0
+  where
+    rstrRef = queueReadStream queue
+    rswt0 = WVar.cachedTicket rswc0
+    (ReadState rcounter rlimit0) = WVar.readWTicket rswt0
 
 -- | Try to read an item from the 'Queue'. It never blocks.
 --
@@ -215,10 +215,10 @@ tryReadQueueRaw queue rswc0 = do
             if rlimit1 /= rlimit0
                 then tryReadQueueRaw queue rswc1
                 else return Nothing
-    where
-        rstrRef = queueReadStream queue
-        rswt0 = WVar.cachedTicket rswc0
-        (ReadState rcounter rlimit0) = WVar.readWTicket rswt0
+  where
+    rstrRef = queueReadStream queue
+    rswt0 = WVar.cachedTicket rswc0
+    (ReadState rcounter rlimit0) = WVar.readWTicket rswt0
 
 {-# INLINE readStream #-}
 readStream :: IORef (Stream a) -> Stream a -> StreamIndex -> IO a
@@ -268,15 +268,15 @@ extendReadStream rstate0 rstr0 waitWrite = do
                 (rlimitNext2, _) <- searchStreamReadLimit rstr1 rlimitNext1
                 newRState rlimitNext2
             else return rstate0
-    where
-        rlimit0 = rsLimit rstate0
-        rlimitNext0 = rlimit0 + 1
-        newRState rlimitNext = do
-            rcounter <- Atm.newCounter rlimit0
-            return rstate0
-                { rsCounter = rcounter
-                , rsLimit   = rlimitNext - 1
-                }
+  where
+    rlimit0 = rsLimit rstate0
+    rlimitNext0 = rlimit0 + 1
+    newRState rlimitNext = do
+        rcounter <- Atm.newCounter rlimit0
+        return rstate0
+            { rsCounter = rcounter
+            , rsLimit   = rlimitNext - 1
+            }
 
 -- | Write an item to the 'Queue'.
 -- The item is evaluated (WHNF) before actual queueing.
@@ -303,38 +303,38 @@ targetStream str0@(Stream _ _ offset) strIdx = do
     let (strNum, bufIdx) = divModBufferLength $ strIdx - offset
     str1 <- getStream strNum bufIdx str0
     return (bufIdx, str1)
-    where
-        {-# INLINE getStream #-}
-        getStream 0 _      strA = return strA
-        getStream n bufIdx strA = do
-            strB <- waitNextStream strA bufIdx
-            getStream (n-1) bufIdx strB
+  where
+    {-# INLINE getStream #-}
+    getStream 0 _      strA = return strA
+    getStream n bufIdx strA = do
+        strB <- waitNextStream strA bufIdx
+        getStream (n-1) bufIdx strB
 
 {-# NOINLINE waitNextStream #-}
 waitNextStream :: Stream a -> Int -> IO (Stream a)
 waitNextStream (Stream _ nextStrRef offset) = go
-    where
-        {-# INLINE go #-}
-        go wait = do
-            ticket <- Atm.readForCAS nextStrRef
-            case Atm.peekTicket ticket of
-                NextStream strNext -> return strNext
-                nextSrc@(NextSource bufSrc)
-                    | wait > 0  -> do
-                        CC.yield
-                        go (wait - 1)
-                    | otherwise -> do
-                        newBuf <- bufSrc
-                        newNext <- Ref.newIORef nextSrc
-                        let nextStrCand = NextStream Stream
-                                { streamBuffer = newBuf
-                                , streamNext   = newNext
-                                , streamOffset = offset + bufferLength
-                                }
-                        (_, next) <- Atm.casIORef nextStrRef ticket nextStrCand
-                        case Atm.peekTicket next of
-                            NextStream nextStr -> return nextStr
-                            NextSource _       -> go 1
+  where
+    {-# INLINE go #-}
+    go wait = do
+        ticket <- Atm.readForCAS nextStrRef
+        case Atm.peekTicket ticket of
+            NextStream strNext -> return strNext
+            nextSrc@(NextSource bufSrc)
+                | wait > 0  -> do
+                    CC.yield
+                    go (wait - 1)
+                | otherwise -> do
+                    newBuf <- bufSrc
+                    newNext <- Ref.newIORef nextSrc
+                    let nextStrCand = NextStream Stream
+                            { streamBuffer = newBuf
+                            , streamNext   = newNext
+                            , streamOffset = offset + bufferLength
+                            }
+                    (_, next) <- Atm.casIORef nextStrRef ticket nextStrCand
+                    case Atm.peekTicket next of
+                        NextStream nextStr -> return nextStr
+                        NextSource _       -> go 1
 
 -- | Search 'Stream' and return 'StreamIndex' and its 'Stream'
 --     of the oldest unavailable Item.
@@ -342,13 +342,13 @@ waitNextStream (Stream _ nextStrRef offset) = go
 searchStreamReadLimit :: Stream a -> StreamIndex -> IO (StreamIndex, Stream a)
 searchStreamReadLimit baseStr strIdx =
     go (strIdx - streamOffset baseStr) baseStr
-    where
-        {-# INLINE go #-}
-        go bufIdx stream@(Stream buf _ offset) = do
-            ret <- searchBufferReadLimit buf bufIdx
-            case ret of
-                Just retBufIdx -> return (offset + retBufIdx, stream)
-                Nothing        -> waitNextStream stream 0 >>= go 0
+  where
+    {-# INLINE go #-}
+    go bufIdx stream@(Stream buf _ offset) = do
+        ret <- searchBufferReadLimit buf bufIdx
+        case ret of
+            Just retBufIdx -> return (offset + retBufIdx, stream)
+            Nothing        -> waitNextStream stream 0 >>= go 0
 
 -- | Search 'Buffer' and return 'BufferIndex'
 --     of the oldest unavailable Item.
@@ -356,18 +356,18 @@ searchStreamReadLimit baseStr strIdx =
 {-# INLINE searchBufferReadLimit #-}
 searchBufferReadLimit :: Buffer a -> BufferIndex -> IO (Maybe BufferIndex)
 searchBufferReadLimit buf = go
-    where
-        {-# INLINE go #-}
-        go bufIdx
-            | idxIsOutOfBuf = return Nothing
-            | otherwise = do
-                item <- Arr.readArray buf bufIdx
-                case item of
-                    None   -> return $ Just bufIdx
-                    Wait _ -> return $ Just bufIdx
-                    _      -> go $ bufIdx + 1
-            where
-                idxIsOutOfBuf = bufIdx >= bufferLength
+  where
+    {-# INLINE go #-}
+    go bufIdx
+        | idxIsOutOfBuf = return Nothing
+        | otherwise = do
+            item <- Arr.readArray buf bufIdx
+            case item of
+                None   -> return $ Just bufIdx
+                Wait _ -> return $ Just bufIdx
+                _      -> go $ bufIdx + 1
+      where
+        idxIsOutOfBuf = bufIdx >= bufferLength
 
 -- | Get the length of the items in the 'Queue'.
 --
@@ -383,9 +383,9 @@ lengthQueue (Queue _ wcounter _ rsvar _) = do
 -- | Non-minus version of 'lengthQueue'.
 lengthQueue' :: Queue a -> IO Int
 lengthQueue' queue = f <$> lengthQueue queue
-    where
-        f i | i > 0     = i
-            | otherwise = 0
+  where
+    f i | i > 0     = i
+        | otherwise = 0
 
 {-# INLINE gteIndex #-}
 gteIndex :: Int -> Int -> Bool

@@ -38,12 +38,12 @@ assertFailure desc = do
 
 failWithException :: (String -> String) -> IO x -> IO y
 failWithException descf wait = proc `E.catch` returnError
-    where
-        returnError (E.SomeException err) = do
-            assertFailure . descf $ "but aborted with: " <> show err
-        proc = do
-            M.void wait
-            assertFailure $ descf "died with no exception (test maybe wrong)"
+  where
+    returnError (E.SomeException err) = do
+        assertFailure . descf $ "but aborted with: " <> show err
+    proc = do
+        M.void wait
+        assertFailure $ descf "died with no exception (test maybe wrong)"
 
 --------------------
 -- assertions
@@ -54,19 +54,19 @@ assertTrue False desc = HU.assertFailure desc
 
 assertEqual :: (Show x, Eq x) => x -> x -> IO ()
 assertEqual expected actual = assertTrue (expected == actual) desc
-    where
-        desc = mkDesc 80 "expected" expectedStr <> "\n" <>
-               mkDesc 80 "actual  " actualStr
-        expectedStr = show expected
-        actualStr   = show actual
+  where
+    desc = mkDesc 80 "expected" expectedStr <> "\n" <>
+           mkDesc 80 "actual  " actualStr
+    expectedStr = show expected
+    actualStr   = show actual
 
 assertNotEqual :: (Show x, Eq x) => x -> x -> IO ()
 assertNotEqual expected actual = assertTrue (expected /= actual) desc
-    where
-        desc = mkDesc 80 "expected not to be" expectedStr <> "\n" <>
-               mkDesc 80 "actual" actualStr
-        expectedStr = show expected
-        actualStr   = show actual
+  where
+    desc = mkDesc 80 "expected not to be" expectedStr <> "\n" <>
+           mkDesc 80 "actual" actualStr
+    expectedStr = show expected
+    actualStr   = show actual
 
 shouldBe :: (Show x, Eq x) => x -> x -> IO ()
 shouldBe = flip assertEqual
@@ -76,17 +76,17 @@ shouldNotBe = flip assertNotEqual
 
 shouldSatisfy :: Show x => x -> (x -> Bool) -> IO ()
 shouldSatisfy x f = assertTrue (f x) desc
-    where
-        desc = "assertion failed on: " ++ show x
+  where
+    desc = "assertion failed on: " ++ show x
 
 shouldContain :: (Show x, Eq x) => [x] -> [x] -> IO ()
 shouldContain actual expected = assertTrue result $ desc
-    where
-        result = expected `L.isInfixOf` actual
-        desc = mkDesc 80 "expected to contain" expectedStr <> "\n" <>
-               mkDesc 80 "but actual" actualStr
-        expectedStr = show expected
-        actualStr   = show actual
+  where
+    result = expected `L.isInfixOf` actual
+    desc = mkDesc 80 "expected to contain" expectedStr <> "\n" <>
+           mkDesc 80 "but actual" actualStr
+    expectedStr = show expected
+    actualStr   = show actual
 
 shouldReturn :: (Show x, Eq x) => IO x -> x -> IO ()
 shouldReturn act expected = do
@@ -94,10 +94,10 @@ shouldReturn act expected = do
     case ex of
         Right x                    -> x `shouldBe` expected
         Left (E.SomeException err) -> HU.assertFailure $ desc err
-    where
-        desc err = mkDesc 80 "expected" expectedStr <> "\n" <>
-                   mkDesc 80 "but exception throwed" (show err)
-        expectedStr = show expected
+  where
+    desc err = mkDesc 80 "expected" expectedStr <> "\n" <>
+               mkDesc 80 "but exception throwed" (show err)
+    expectedStr = show expected
 
 shouldThrow :: (Show x, E.Exception e) => IO x -> Selector e -> IO ()
 shouldThrow act selector = do
@@ -108,14 +108,14 @@ shouldThrow act selector = do
             Just e | selector e -> return ()
                    | otherwise  -> HU.assertFailure $ descF err
             Nothing             -> HU.assertFailure $ descE err
-   where
-        descX x = expectedStr <> mkDesc 80 "but returned" (show x)
-        descF e = expectedStr <> mkDesc 80 "but selector failed for" (show e)
-        descE e = expectedStr <> mkDesc 80 "but exception throwed" (show e)
-        expectedStr = mkDesc 80 "expected to throw" exceptedType <> "\n"
-        exceptedType = (show . TP.typeOf . instanceOf) selector
-        instanceOf :: Selector a -> a
-        instanceOf _ = error "dummy data of shouldThrow"
+  where
+    descX x = expectedStr <> mkDesc 80 "but returned" (show x)
+    descF e = expectedStr <> mkDesc 80 "but selector failed for" (show e)
+    descE e = expectedStr <> mkDesc 80 "but exception throwed" (show e)
+    expectedStr = mkDesc 80 "expected to throw" exceptedType <> "\n"
+    exceptedType = (show . TP.typeOf . instanceOf) selector
+    instanceOf :: Selector a -> a
+    instanceOf _ = error "dummy data of shouldThrow"
 
 -- gc expectations
 
@@ -147,8 +147,8 @@ shouldBlock act time = do
         Just (CC.ThreadBlocked _) -> return ()
         _                         -> HU.assertFailure $ desc "but still running"
     return async
-    where
-        desc str = "expected to block in " <> show time <> " nanosec\n" <> str
+  where
+    desc str = "expected to block in " <> show time <> " nanosec\n" <> str
 
 shouldStillBlock :: AS.Async x -> Int -> IO ()
 shouldStillBlock async time = M.void $ AS.wait async `shouldBlock` time
@@ -166,9 +166,9 @@ shouldAwakeFinish async time = do
         CC.ThreadRunning        ->
             HU.assertFailure . desc $ "but still running"
     wait
-    where
-        desc str = "expected to awake and finish in "
-            <> show time <> " nanosec\n" <> str
+  where
+    desc str = "expected to awake and finish in " <>
+               show time <> " nanosec\n" <> str
 
 onlyOneShouldAwakeFinish :: [AS.Async x] -> Int -> IO (x, [AS.Async x])
 onlyOneShouldAwakeFinish asyncs0 time = do
@@ -184,9 +184,9 @@ onlyOneShouldAwakeFinish asyncs0 time = do
         CC.ThreadDied     -> failWithException desc wait
         _                 -> assertFailure . desc $ "unknown case"
     return (x, asyncs1)
-    where
-        desc str = "expected to awake only one and finish in "
-            <> show time <> " nanosec\n" <> str
+  where
+    desc str = "expected to awake only one and finish in " <>
+               show time <> " nanosec\n" <> str
 
 shouldNotBlock :: IO x -> Int -> IO x
 shouldNotBlock act time = do
@@ -200,9 +200,9 @@ shouldNotBlock act time = do
             HU.assertFailure . desc $ "but blocked with " <> show reason
         _ -> HU.assertFailure $ desc "but still running"
     wait
-    where
-        desc str = "expected not to block and finish in " <> show time <>
-                   " nanosec\n" <> str
+  where
+    desc str = "expected not to block and finish in " <>
+               show time <> " nanosec\n" <> str
 
 shouldFinish :: IO x -> Int -> IO x
 shouldFinish act time = do
@@ -216,9 +216,9 @@ shouldFinish act time = do
             HU.assertFailure . desc $ "but blocked with " <> show reason
         _ -> HU.assertFailure $ desc "but still running"
     wait
-    where
-        desc str = "expected to finish in " <> show time <>
-                   " nanosec\n" <> str
+  where
+    desc str = "expected to finish in " <> show time <>
+               " nanosec\n" <> str
 
 ---------------------------
 --- util
@@ -227,15 +227,15 @@ mkDesc :: Int -> String -> String -> String
 mkDesc len s1 s2
     | length s1 + length str > len = s1 <> ":\n\t" <> str
     | otherwise                    = s1 <> ": "    <> str
-    where
-        str = truncateString 512 s2
+  where
+    str = truncateString 512 s2
 
 truncateString :: Int -> String -> String
 truncateString len str
     | null rest = res
     | otherwise = res <> "..."
-    where
-        (res, rest) = L.splitAt len str
+  where
+    (res, rest) = L.splitAt len str
 
 and :: [a -> Bool] -> (a -> Bool)
 and (c:cs) a | c a       = and cs a

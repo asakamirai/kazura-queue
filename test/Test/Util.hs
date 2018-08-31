@@ -19,20 +19,20 @@ oneOf []       = error "actions must include at least one element"
 
 oneOfWithIndex :: [IO x] -> IO (x, Int)
 oneOfWithIndex = go 0
-    where
-        go _ []       = error "actions must include at least one element"
-        go x (io:[])  = (, x) <$> io
-        go x (io:ios) = ((, x) <$> io)
-            `E.catch` \ (E.SomeException _) -> go (x+1) ios
+  where
+    go _ []       = error "actions must include at least one element"
+    go x (io:[])  = (, x) <$> io
+    go x (io:ios) = ((, x) <$> io)
+        `E.catch` \ (E.SomeException _) -> go (x+1) ios
 
 genSatisfy :: Q.Arbitrary a => Int -> (a -> Bool) -> IO [a]
 genSatisfy num f = M.replicateM num . Q.generate $ Q.arbitrary `Q.suchThat` f
 
 pickUp :: Int -> [x] -> (x, [x])
 pickUp idx xs = (rx, hxs ++ drop 1 txs)
-    where
-        (hxs, txs) = L.splitAt idx xs
-        rx = case take 1 txs of
-            r:_ -> r
-            _   -> error "invalid index to pickUp"
+  where
+    (hxs, txs) = L.splitAt idx xs
+    rx = case take 1 txs of
+        r:_ -> r
+        _   -> error "invalid index to pickUp"
 

@@ -63,9 +63,9 @@ concurrently act1 act2 = do
     mdelay2 <- Q.generate $ arbitraryDelay 20000
     withWaitStart $ \ wait ->
         wrap wait mdelay1 act1 `AS.concurrently` wrap wait mdelay2 act2
-    where
-        wrap :: IO () -> Maybe Int -> IO a -> IO a
-        wrap wait mdelay act = wait >> TF.for mdelay CC.threadDelay >> act
+  where
+    wrap :: IO () -> Maybe Int -> IO a -> IO a
+    wrap wait mdelay act = wait >> TF.for mdelay CC.threadDelay >> act
 
 mapConcurrently :: [IO a] -> IO [a]
 mapConcurrently acts = do
@@ -73,9 +73,9 @@ mapConcurrently acts = do
     mds <- Q.generate . Q.vectorOf len $ fmap (`mod` 20000) <$> Q.arbitrary
     withWaitStart $ \ wait -> do
         AS.mapConcurrently id $ wrap wait <$> zip mds acts
-    where
-        wrap :: IO () -> (Maybe Int, IO a) -> IO a
-        wrap wait (mdelay, act) = wait >> TF.for mdelay CC.threadDelay >> act
+  where
+    wrap :: IO () -> (Maybe Int, IO a) -> IO a
+    wrap wait (mdelay, act) = wait >> TF.for mdelay CC.threadDelay >> act
 
 mapConcurrently_ :: [IO a] -> IO ()
 mapConcurrently_ = M.void . mapConcurrently
@@ -96,13 +96,13 @@ waitAny = waitAnyAtLeast 1
 waitAnyAtLeast :: HasThread th =>
     Int -> (CC.ThreadStatus -> Bool) -> [th] -> IO [(Int, CC.ThreadStatus)]
 waitAnyAtLeast num f ths = go
-    where
-        go = do
-            statuses <- M.sequence $ threadStatus <$> ths
-            let satisfied = filter (f . snd) $ zip [0..] statuses
-            if length satisfied >= num
-                then return satisfied
-                else CC.threadDelay 1 >> go
+  where
+    go = do
+        statuses <- M.sequence $ threadStatus <$> ths
+        let satisfied = filter (f . snd) $ zip [0..] statuses
+        if length satisfied >= num
+            then return satisfied
+            else CC.threadDelay 1 >> go
 
 data RandomException = RandomException Int String
     deriving (Show, Typeable)
@@ -126,20 +126,20 @@ runningThreadId th = do
 
 throwExceptionRandomly :: HasThread th => [th] -> IO ()
 throwExceptionRandomly ths = go (1 :: Int)
-    where
-        getAlives = fmap MB.catMaybes . M.sequence $ runningThreadId <$> ths
-        go !c = do
-            mdelay <- Q.generate $ arbitraryDelay $ 20000 * c
-            case mdelay of
-                Just delay -> CC.threadDelay delay
-                Nothing    -> return ()
-            alives <- getAlives
-            if length alives == 0
-                then return ()
-                else do
-                    alive <- Q.generate $ Q.elements alives
-                    throwTo alive . RandomException c $ show mdelay ++ " : " ++ show (length alives)
-                    go $ c+1
+  where
+    getAlives = fmap MB.catMaybes . M.sequence $ runningThreadId <$> ths
+    go !c = do
+        mdelay <- Q.generate $ arbitraryDelay $ 20000 * c
+        case mdelay of
+            Just delay -> CC.threadDelay delay
+            Nothing    -> return ()
+        alives <- getAlives
+        if length alives == 0
+            then return ()
+            else do
+                alive <- Q.generate $ Q.elements alives
+                throwTo alive . RandomException c $ show mdelay ++ " : " ++ show (length alives)
+                go $ c+1
 
 arbitraryDelay :: Int -> Q.Gen (Maybe Int)
 arbitraryDelay limit = do
@@ -149,5 +149,4 @@ arbitraryDelay limit = do
     case mbase of
         Just base -> return . Just . (`mod` limit) $ base * multi1 * multi2
         Nothing   -> return Nothing
-
 

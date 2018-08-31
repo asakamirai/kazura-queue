@@ -132,13 +132,13 @@ tryTakeWCachedSpec = HS.describe "tryTakeWCached" $ do
     T.whenWVarIsUpdating $ T.withLatestCache failToTakeButReadLatest
     T.whenWVarIsFreshButCacheStaled    failToTakeButReadLatest
     T.whenWVarIsUpdatingAndCacheStaled failToTakeButReadLatest
-    where
-        failToTakeButReadLatest prepare = do
-            HS.it "fails but reads the latest value without blocking" $ do
-                (_, val :: Int, _, wc) <- prepare
-                (ret, wt) <- WV.tryTakeWCached wc `T.shouldNotBlock` 500000
-                ret `T.shouldBe` False
-                WV.readWTicket wt `T.shouldBe` val
+  where
+    failToTakeButReadLatest prepare = do
+        HS.it "fails but reads the latest value without blocking" $ do
+            (_, val :: Int, _, wc) <- prepare
+            (ret, wt) <- WV.tryTakeWCached wc `T.shouldNotBlock` 500000
+            ret `T.shouldBe` False
+            WV.readWTicket wt `T.shouldBe` val
 
 putWCachedSpec :: HS.Spec
 putWCachedSpec = HS.describe "putWCached" $ do
@@ -146,13 +146,13 @@ putWCachedSpec = HS.describe "putWCached" $ do
     T.whenWVarIsUpdating $ T.withLatestCache writeValueWithoutBlocking
     T.whenWVarIsFreshButCacheStaled    writeValueWithoutBlocking
     T.whenWVarIsUpdatingAndCacheStaled writeValueWithoutBlocking
-    where
-        writeValueWithoutBlocking prepare = do
-            HS.it "writes the value without blocking" $ do
-                (_, val1 :: Int, _, wc) <- prepare
-                val2 <- Q.generate $ Q.arbitrary `Q.suchThat` (/= val1)
-                wt <- WV.putWCached wc val2 `T.shouldNotBlock` 500000
-                WV.readWTicket wt `T.shouldBe` val2
+  where
+    writeValueWithoutBlocking prepare = do
+        HS.it "writes the value without blocking" $ do
+            (_, val1 :: Int, _, wc) <- prepare
+            val2 <- Q.generate $ Q.arbitrary `Q.suchThat` (/= val1)
+            wt <- WV.putWCached wc val2 `T.shouldNotBlock` 500000
+            WV.readWTicket wt `T.shouldBe` val2
 
 tryPutWCachedSpec :: HS.Spec
 tryPutWCachedSpec = HS.describe "tryPutWCached" $ do
@@ -160,21 +160,21 @@ tryPutWCachedSpec = HS.describe "tryPutWCached" $ do
     T.whenWVarIsUpdating $ T.withLatestCache writeValueWithoutBlocking
     T.whenWVarIsFreshButCacheStaled    failToWrite
     T.whenWVarIsUpdatingAndCacheStaled failToWrite
-    where
-        writeValueWithoutBlocking prepare = do
-            HS.it "writes the value without blocking" $ do
-                (_, val1 :: Int, _, wc) <- prepare
-                val2 <- Q.generate $ Q.arbitrary `Q.suchThat` (/= val1)
-                (ret, wt) <- WV.tryPutWCached wc val2 `T.shouldNotBlock` 500000
-                ret `T.shouldBe` True
-                WV.readWTicket wt `T.shouldBe` val2
-        failToWrite prepare = do
-            HS.it "fails to write the value without blocking" $ do
-                (_, val1 :: Int, _, wc) <- prepare
-                val2 <- Q.generate $ Q.arbitrary `Q.suchThat` (/= val1)
-                (ret, wt) <- WV.tryPutWCached wc val2 `T.shouldNotBlock` 500000
-                ret `T.shouldBe` False
-                WV.readWTicket wt `T.shouldBe` val1
+  where
+    writeValueWithoutBlocking prepare = do
+        HS.it "writes the value without blocking" $ do
+            (_, val1 :: Int, _, wc) <- prepare
+            val2 <- Q.generate $ Q.arbitrary `Q.suchThat` (/= val1)
+            (ret, wt) <- WV.tryPutWCached wc val2 `T.shouldNotBlock` 500000
+            ret `T.shouldBe` True
+            WV.readWTicket wt `T.shouldBe` val2
+    failToWrite prepare = do
+        HS.it "fails to write the value without blocking" $ do
+            (_, val1 :: Int, _, wc) <- prepare
+            val2 <- Q.generate $ Q.arbitrary `Q.suchThat` (/= val1)
+            (ret, wt) <- WV.tryPutWCached wc val2 `T.shouldNotBlock` 500000
+            ret `T.shouldBe` False
+            WV.readWTicket wt `T.shouldBe` val1
 
 readWCachedSpec :: HS.Spec
 readWCachedSpec = HS.describe "readWCached" $ do
@@ -182,15 +182,15 @@ readWCachedSpec = HS.describe "readWCached" $ do
     T.whenWVarIsUpdating $ T.withLatestCache readLatestValue
     T.whenWVarIsFreshButCacheStaled    readOldValue
     T.whenWVarIsUpdatingAndCacheStaled readOldValue
-    where
-        readLatestValue prepare = do
-            HS.it "reads the latest value in the ticket" $ do
-                (_, val :: Int, _, wc) <- prepare
-                WV.readWCached wc `T.shouldBe` val
-        readOldValue prepare = do
-            HS.it "reads the old value in the ticket" $ do
-                (val :: Int, _, _, wc) <- prepare
-                WV.readWCached wc `T.shouldBe` val
+  where
+    readLatestValue prepare = do
+        HS.it "reads the latest value in the ticket" $ do
+            (_, val :: Int, _, wc) <- prepare
+            WV.readWCached wc `T.shouldBe` val
+    readOldValue prepare = do
+        HS.it "reads the old value in the ticket" $ do
+            (val :: Int, _, _, wc) <- prepare
+            WV.readWCached wc `T.shouldBe` val
 
 readFreshWCachedSpec :: HS.Spec
 readFreshWCachedSpec = HS.describe "readFreshWCached" $ do
@@ -211,12 +211,12 @@ readFreshWCachedSpec = HS.describe "readFreshWCached" $ do
             WV.readWTicket wt `T.shouldBe` val2
     T.whenWVarIsFreshButCacheStaled    readOldValue
     T.whenWVarIsUpdatingAndCacheStaled readOldValue
-    where
-        readOldValue prepare = do
-            HS.it "reads the old value without blocking" $ do
-                (val :: Int, _, _, wc) <- prepare
-                wt <- WV.readFreshWCached wc `T.shouldNotBlock` 500000
-                WV.readWTicket wt `T.shouldBe` val
+  where
+    readOldValue prepare = do
+        HS.it "reads the old value without blocking" $ do
+            (val :: Int, _, _, wc) <- prepare
+            wt <- WV.readFreshWCached wc `T.shouldNotBlock` 500000
+            WV.readWTicket wt `T.shouldBe` val
 
 tryReadFreshWCachedSpec :: HS.Spec
 tryReadFreshWCachedSpec = HS.describe "tryReadFreshWCached" $ do

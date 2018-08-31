@@ -26,25 +26,25 @@ timeout act = do
 
 whenQueueIsEmpty :: (((KQ.Queue x -> IO r) -> IO r) -> HS.Spec) -> HS.Spec
 whenQueueIsEmpty f = HS.describe "when Queue is empty" $ f prepare
-    where
-        prepare :: (KQ.Queue x -> IO r) -> IO r
-        prepare iof = do
-            q <- KQ.newQueue
-            timeout . prependIndefiniteBlock q $ iof q
+  where
+    prepare :: (KQ.Queue x -> IO r) -> IO r
+    prepare iof = do
+        q <- KQ.newQueue
+        timeout . prependIndefiniteBlock q $ iof q
 
 whenItemsInQueue :: Q.Arbitrary x =>
     (Int, Int) -> ((((KQ.Queue x, [x]) -> IO r) -> IO r) -> HS.Spec) -> HS.Spec
 whenItemsInQueue range f = HS.describe "when some items in Queue" $ f prepare
-    where
-        (minSize, maxSize) = range
-        len = maxSize - minSize + 1
-        prepare :: Q.Arbitrary x => ((KQ.Queue x, [x]) -> IO r) -> IO r
-        prepare iof = do
-            num <- (+ minSize) . (`mod` len) . abs <$> Q.generate Q.arbitrary
-            vals <- M.replicateM num $ Q.generate Q.arbitrary
-            queue <- KQ.newQueue
-            TF.for_ vals $ KQ.writeQueue queue
-            timeout . prependIndefiniteBlock queue $ iof (queue, vals)
+  where
+    (minSize, maxSize) = range
+    len = maxSize - minSize + 1
+    prepare :: Q.Arbitrary x => ((KQ.Queue x, [x]) -> IO r) -> IO r
+    prepare iof = do
+        num <- (+ minSize) . (`mod` len) . abs <$> Q.generate Q.arbitrary
+        vals <- M.replicateM num $ Q.generate Q.arbitrary
+        queue <- KQ.newQueue
+        TF.for_ vals $ KQ.writeQueue queue
+        timeout . prependIndefiniteBlock queue $ iof (queue, vals)
 
 prependIndefiniteBlock :: KQ.Queue x -> IO r -> IO r
 prependIndefiniteBlock queue io = do
