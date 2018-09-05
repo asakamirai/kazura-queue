@@ -38,11 +38,9 @@ description:         |
      It means that kazura-queue is not \"Chan\" but is just \"Queue\".
 
 dependencies:
-- base >= 4.7 && < 5
+- base           >= 4.7
 - primitive      >= 0.5.3
-- atomic-primops >= 0.8
-- async          >= 2.0
-- containers     >= 0.5
+- atomic-primops >= 0.6
 
 library:
   source-dirs: src
@@ -53,6 +51,7 @@ library:
 benchmarks:
   kazura-queue-bench:
     main: Main.hs
+    source-dirs: bench
     ghc-options:
     - -Wall
     - -O2
@@ -76,7 +75,7 @@ tests:
     dependencies:
     - kazura-queue
     - doctest
-    - QuickCheck         >= 2.8
+    - QuickCheck >= 2.8
   kazura-queue-test:
     main: Spec.hs
     source-dirs: test
@@ -88,6 +87,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - kazura-queue
+    - async              >= 2.0
+    - containers         >= 0.5
     - HUnit              >= 1.2
     - hspec              >= 2.1
     - hspec-expectations >= 0.7
