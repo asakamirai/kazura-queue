@@ -38,7 +38,7 @@ description:         |
      It means that kazura-queue is not \"Chan\" but is just \"Queue\".
 
 dependencies:
-- base           >= 4.7
+- base           >= 4.7 && < 5.0
 - primitive      >= 0.5.3
 - atomic-primops >= 0.6
 
